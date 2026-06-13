@@ -214,13 +214,58 @@ class MixinProcessor(
         if (mixinApkFile.length() != targetApkFile.length()) {
             targetApkFile.copyTo(mixinApkFile, overwrite = true)
         }
-        ZipUtil.addOrReplaceFilesInZip(
-            mixinApkFile,
-            outputDexDir.listFiles()?.associateBy { it.name } ?: emptyMap()
-        )
+        val filesToAdd = buildMap {
+            putAll(outputDexDir.listFiles()?.associateBy { it.name } ?: emptyMap())
+            putAll(collectInjectFiles())
+            patchManifest(mixinApkFile)?.let { put("AndroidManifest.xml", it) }
+        }
+        ZipUtil.addOrReplaceFilesInZip(mixinApkFile, filesToAdd)
 
         stopWatchZipToApk.stop()
         lifecycle("Mixin apk written in ${stopWatchZipToApk.elapsed(TimeUnit.MILLISECONDS)}ms")
+    }
+
+    /**
+     * Merge the user-authored manifest patch (`mixin/<manifestMerge>`) into [apk]'s binary manifest.
+     * Returns the patched manifest file to inject into the APK, or null if there's no patch file or
+     * nothing to merge (the build then proceeds with the manifest unchanged).
+     */
+    private fun patchManifest(apk: File): File? {
+        val patchXml = targetApkFile.parentFile.child(extension.manifestMerge)
+        if (!patchXml.isFile) return null
+        val out = project.outputDir(extension).child("merged-AndroidManifest.xml")
+        return runCatching {
+            if (momoi.plugin.apkmixin.utils.ManifestMerger.merge(apk, patchXml, out)) {
+                lifecycle("Merged manifest from ${patchXml.absolutePath}")
+                out
+            } else {
+                lifecycle("Manifest merge skipped (nothing to merge)")
+                null
+            }
+        }.getOrElse {
+            lifecycle("Manifest merge failed: ${it.message}")
+            null
+        }
+    }
+
+    /**
+     * Collects arbitrary files to add/replace in the output APK from the inject directory
+     * (`mixin/<injectDir>`, default `mixin/inject`). The path of each file relative to that
+     * directory becomes its zip entry name, so the tree mirrors the APK root. This is generic:
+     * drop any `assets/...`, `res/...`, `lib/...`, etc. file there to bundle or override it.
+     */
+    private fun collectInjectFiles(): Map<String, File> {
+        val injectRoot = targetApkFile.parentFile.child(extension.injectDir)
+        if (!injectRoot.isDirectory) return emptyMap()
+        val result = injectRoot.walkTopDown()
+            .filter { it.isFile }
+            .associate { file ->
+                injectRoot.toPath().relativize(file.toPath()).toString().replace(File.separatorChar, '/') to file
+            }
+        if (result.isNotEmpty()) {
+            lifecycle("Injecting ${result.size} file(s) from ${injectRoot.absolutePath}: ${result.keys.sorted()}")
+        }
+        return result
     }
 
     private fun createDexRewriter(newClassesDex: DexFile, modifiedClasses: Map<String, ClassDef>): DexRewriter {

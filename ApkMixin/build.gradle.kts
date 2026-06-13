@@ -27,6 +27,9 @@ dependencies {
     implementation("com.android.tools.smali:smali-baksmali:3.0.9")
     // noinspection UseTomlInstead
     implementation("com.huanli233:multidexlib2:3.0.9.r4")
+    // resources.arsc read/write + binary XML encoding, for adaptive-icon injection
+    // noinspection UseTomlInstead
+    implementation("io.github.reandroid:ARSCLib:1.3.8")
     implementation(fileTree("./libs") {
         include("*.jar")
     })

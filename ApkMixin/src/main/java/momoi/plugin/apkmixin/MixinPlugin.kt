@@ -2,6 +2,7 @@ package momoi.plugin.apkmixin
 
 import com.android.apksigner.ApkSignerTool
 import com.wind.meditor.ManifestEditorMain
+import momoi.plugin.apkmixin.utils.ResourceInjector
 import momoi.plugin.apkmixin.utils.child
 import momoi.plugin.apkmixin.utils.ensureDirExists
 import momoi.plugin.apkmixin.utils.lifecycle
@@ -48,6 +49,7 @@ class MixinPlugin : Plugin<Project> {
             it.dependsOn("MixinApk")
             it.doLast {
                 processManifest(project, isDebug = true)
+                injectResources(project)
                 sign(project)
                 createMetadata(project, if (extension.signing.enabled) extension.output.signedFileName else extension.output.unsignedFileName)
             }
@@ -73,8 +75,18 @@ class MixinPlugin : Plugin<Project> {
             project.outputDir(extension).child(extension.output.unsignedFileName).absolutePath,
             "-d", if (isDebug) "1" else "0",
             "-vn", extension.versionName,
+            "-aa", "android-label:QQ Max",
             "--force"
         )
+    }
+
+    private fun injectResources(project: Project) {
+        val resDir = project.projectDir.child("mixin").child(extension.injectResDir)
+        if (!resDir.isDirectory) return
+        // processManifest just wrote unsignedFileName; sign() (if enabled) consumes it next.
+        val targetApk = project.outputDir(extension).child(extension.output.unsignedFileName)
+        lifecycle("Injecting resources...")
+        ResourceInjector.inject(targetApk, resDir)
     }
 
     private fun sign(project: Project) {
