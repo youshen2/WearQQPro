@@ -27,6 +27,7 @@ import momoi.mod.qqpro.lib.RadiusBackgroundSpan
 import momoi.mod.qqpro.lib.create
 import momoi.mod.qqpro.util.linkify
 import momoi.mod.qqpro.warp
+import moye.wear.hook.LinkPreview
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 
@@ -150,6 +151,8 @@ object AIOCell {
                     it.height = ViewGroup.LayoutParams.WRAP_CONTENT
                 }
             }
+            // 文本消息下方挂载链接预览卡片（按开关与是否含链接决定显隐）
+            LinkPreview.bind(widget, (widget.contentWidget as? TextView)?.text)
         }
     }
 

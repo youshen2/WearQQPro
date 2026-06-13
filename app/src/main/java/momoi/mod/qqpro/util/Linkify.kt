@@ -7,25 +7,25 @@ import android.text.style.ClickableSpan
 import android.text.style.URLSpan
 import android.view.View
 import android.widget.TextView
-import java.util.regex.Pattern
+import moye.wear.hook.LinkText
+import moye.wear.hook.openLinkWithConfirm
 
 fun TextView.linkify() {
     val spannable = SpannableStringBuilder(text)
     val existingSpans = spannable.getSpans(0, spannable.length, URLSpan::class.java)
     existingSpans.forEach { spannable.removeSpan(it) }
-    val urlRegex = Pattern.compile("(http(s)?://)\\w+\\S+(\\.[^\\s\\u4e00-\\u9fa5\\u3002\\uff1f\\uff01\\uff0c\\u3001\\uff1b\\uff1a\\u201c\\u201d\\u2018\\u2019\\uff08\\uff09\\u300a\\u300b\\u3008\\u3009\\u3010\\u3011\\u300e\\u300f\\u300c\\u300d\\uff43\\uff44\\u3014\\u3015\\u2026\\u2014\\uff5e\\uff4f\\uffe5]+)+")
-    val matcher = urlRegex.matcher(spannable)
-    val links = mutableListOf<Pair<Int, Int>>()
-    while (matcher.find()) {
-        links.add(matcher.start() to matcher.end())
-    }
-    links.reversed().forEach { (start, end) ->
+    // 链接区间的识别交给 LinkText 统一处理：是否识别无前缀链接由设置项控制
+    val links = LinkText.ranges(spannable)
+    links.reversed().forEach { range ->
+        val start = range.first
+        val end = range.last + 1
         val url = spannable.substring(start, end)
 
         spannable.setSpan(
             object : ClickableSpan() {
                 override fun onClick(widget: View) {
-                    Utils.openUrl(url)
+                    // 走带确认的统一入口，裸链接会在打开时补全协议头
+                    widget.openLinkWithConfirm(url)
                 }
             },
             start,
