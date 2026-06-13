@@ -26,10 +26,11 @@ object DisplayConfig {
     val aboutDialogText: String
         get() = buildString {
             appendLine("WearQQ Pro")
-            appendLine("1.1")
+            appendLine("2.0")
             appendLine()
             appendLine("由 爅峫 制作")
             appendLine("基于QQPro v1.5.1")
+            appendLine("参考自QQ Max")
             appendLine()
             appendLine("禁止删除“爅峫”署名")
             appendLine("禁止用于任何形式的商业用途")
