@@ -19,14 +19,6 @@ object DisplayConfig {
             appendLine("2026/06/13")
         }
 
-    val settingPageText: String
-        get() = buildString {
-            appendLine("$appName - v$versionName")
-            appendLine("禁止删除\"爅峫\"署名或进行商用,否则将会追究")
-            appendLine("下面是QQPro的设置 by java30433")
-            append("不准你们骂才羽桃井😭😭")
-        }
-
     val aboutDialogText: String
         get() = buildString {
             appendLine("WearQQ Pro")

@@ -2,33 +2,37 @@ package momoi.mod.qqpro.hook
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.text.InputType
+import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup.MarginLayoutParams
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.Switch
 import android.widget.TextView
 import androidx.core.widget.doAfterTextChanged
+import com.tencent.widget.Switch
 import momoi.anno.mixin.Mixin
 import momoi.mod.qqpro.Pref
 import momoi.mod.qqpro.Settings
 import momoi.mod.qqpro.asGroup
+import momoi.mod.qqpro.drawable.roundCornerDrawable
 import momoi.mod.qqpro.lib.FILL
 import momoi.mod.qqpro.lib.GroupScope
 import momoi.mod.qqpro.lib.LinearScope
+import momoi.mod.qqpro.lib.WRAP
 import momoi.mod.qqpro.lib.background
-import momoi.mod.qqpro.lib.checked
 import momoi.mod.qqpro.lib.content
-import momoi.mod.qqpro.lib.doAfterSwitch
 import momoi.mod.qqpro.lib.dp
+import momoi.mod.qqpro.lib.dpf
+import momoi.mod.qqpro.lib.gravity
 import momoi.mod.qqpro.lib.height
+import momoi.mod.qqpro.lib.hint
+import momoi.mod.qqpro.lib.margin
 import momoi.mod.qqpro.lib.padding
 import momoi.mod.qqpro.lib.text
 import momoi.mod.qqpro.lib.textColor
 import momoi.mod.qqpro.lib.textSize
 import momoi.mod.qqpro.lib.vertical
 import momoi.mod.qqpro.lib.width
-import moye.wear.DisplayConfig
 import moye.wearqq.SettingsActivity
 
 @Mixin
@@ -38,11 +42,21 @@ class 设置页 : SettingsActivity() {
         super.onCreate(savedInstanceState)
         val linear = findViewById<View>(2114521834).parent.parent.asGroup()
         linear.parent.asGroup().requestFocus()
-        (linear.getChildAt(linear.childCount - 1) as? TextView)?.let {
-            it.text = DisplayConfig.settingPageText
-            (it.layoutParams as? MarginLayoutParams)?.setMargins(0, 0, 0, 0)
+        val header = linear.getChildAt(0)
+        val originalWearQQViews = (1 until linear.childCount).map { index ->
+            linear.getChildAt(index)
         }
+        val saveButton = originalWearQQViews.find { view ->
+            (view as? TextView)?.text?.toString() == "保存"
+        }
+        val wearQQContentViews = originalWearQQViews.filterNot { it === saveButton }
+        linear.removeAllViews()
+        linear.addView(header)
         GroupScope(linear).apply {
+            wearQQContentViews.forEach { view ->
+                add(view)
+            }
+            sectionTitle("QQPro设置")
             floatInput(
                 "缩放倍数",
                 "重启后生效",
@@ -69,8 +83,24 @@ class 设置页 : SettingsActivity() {
                 Settings.swapCenterKeyboard
             )
             add<View>()
+                .height(12.dp)
+            sectionTitle("WearQQ Pro设置")
+            saveButton?.let { add(it) }
+            add<View>()
                 .height(64.dp)
         }
+    }
+
+    private fun GroupScope.sectionTitle(title: String) {
+        add<TextView>()
+            .text(title)
+            .textSize(12f)
+            .textColor(0xFF_FFFFFF)
+            .padding(left = 8.dp, top = 0, right = 8.dp, bottom = 0)
+            .margin(left = 4.dp, top = 10.dp, right = 4.dp, bottom = 2.dp)
+            .apply {
+                alpha = 0.72f
+            }
     }
 
     private fun GroupScope.switch(
@@ -79,14 +109,18 @@ class 设置页 : SettingsActivity() {
         pref: Pref<Boolean>
     ) {
         baseEntry(title, desc) {
-            add<Switch>()
-                .checked(pref.value)
-                .weight(0.6f)
-                .doAfterSwitch {
-                    pref.value = it
+            add(
+                Switch(group.context, null).apply {
+                    layoutParams = LinearLayout.LayoutParams(WRAP, WRAP)
+                    isChecked = pref.value
+                    setOnCheckedChangeListener { _, checked ->
+                        pref.value = checked
+                    }
                 }
+            )
         }
     }
+
     private fun GroupScope.floatInput(
         title: String,
         desc: String = "",
@@ -95,11 +129,21 @@ class 设置页 : SettingsActivity() {
         baseEntry(title, desc) {
             add<EditText>()
                 .text(pref.value.toString())
-                .textSize(13f)
+                .width(70.dp)
+                .textSize(12f)
                 .textColor(0xFF_FFFFFF)
-                .weight(1f)
+                .gravity(Gravity.CENTER)
+                .hint("支持小数")
+                .background(roundCornerDrawable(0x44_000000, 8.dpf))
+                .padding(left = 6.dp, top = 4.dp, right = 6.dp, bottom = 4.dp)
+                .apply {
+                    isSingleLine = true
+                    inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+                }
                 .doAfterTextChanged {
-                    pref.value = it.toString().toFloatOrNull() ?: pref.value
+                    it?.toString()?.toFloatOrNull()?.let { value ->
+                        pref.value = value
+                    }
                 }
         }
     }
@@ -111,21 +155,30 @@ class 设置页 : SettingsActivity() {
     ) {
         add<LinearLayout>()
             .width(FILL)
-            .background(0xFF_242424)
-            .padding(4.dp)
+            .background(roundCornerDrawable(0x99_3D3D3D.toInt(), 10.dpf))
+            .margin(left = 4.dp, top = 0, right = 4.dp, bottom = 8.dp)
+            .padding(left = 8.dp, top = 7.dp, right = 6.dp, bottom = 7.dp)
+            .gravity(Gravity.CENTER_VERTICAL)
             .content {
                 add<LinearLayout>()
                     .vertical()
                     .weight(1f)
+                    .padding(right = 6.dp)
                     .content {
                         add<TextView>()
                             .text(title)
-                            .textSize(13f)
+                            .textSize(12f)
                             .textColor(0xFF_FFFFFF)
-                        add<TextView>()
-                            .text(desc)
-                            .textSize(11f)
-                            .textColor(0xFF_a1a1a1)
+                        if (desc.isNotBlank()) {
+                            add<TextView>()
+                                .text(desc)
+                                .textSize(10f)
+                                .textColor(0xFF_FFFFFF)
+                                .margin(top = 1.dp)
+                                .apply {
+                                    alpha = 0.88f
+                                }
+                        }
                     }
                 content.invoke(this)
             }
