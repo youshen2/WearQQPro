@@ -148,7 +148,6 @@ class 长按菜单调整(p0: (MenuItemFactory.ItemEnum) -> Unit, p1: String?) :
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        // 自建长按菜单没有原生 cell，上面的撤回按钮在这种场景下直接降级跳过。
         val msg = runCatching {
             val field = this.b.javaClass.getDeclaredField("b")
             field.isAccessible = true
