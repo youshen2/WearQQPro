@@ -1,7 +1,13 @@
-### QQPro
-基于NWear-QQ最终版2（这个版本的qq是爅峫手改smali实现，所以无法开源）
+### WearQQ Pro
 
-☆☆地表最强表Q改版 震撼推出☆☆
+基于QQPro V1.5.1
+基于NWear-QQ最终版2
+
+### 特别鸣谢
+
+AI Life ➡️ QQ Max
+java30433 ➡️ QQPro
+|huanli233|
 
 ### 关于ApkMixin工具
 ```
