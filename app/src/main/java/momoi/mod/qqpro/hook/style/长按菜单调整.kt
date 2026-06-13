@@ -19,11 +19,13 @@ import momoi.anno.mixin.Mixin
 import momoi.mod.qqpro.Colors
 import momoi.mod.qqpro.asGroup
 import momoi.mod.qqpro.drawable.roundCornerDrawable
+import momoi.mod.qqpro.enums.ElementType
 import momoi.mod.qqpro.forEachAll
 import momoi.mod.qqpro.hook.action.CurrentContact
 import momoi.mod.qqpro.hook.action.CurrentGroupMembers
 import momoi.mod.qqpro.hook.action.SelfContact
 import momoi.mod.qqpro.hook.action.isGroup
+import momoi.mod.qqpro.hook.aio_cell.forwardText
 import momoi.mod.qqpro.lib.FILL
 import momoi.mod.qqpro.lib.LinearScope
 import momoi.mod.qqpro.lib.background
@@ -51,7 +53,7 @@ val menuSort = arrayOf(
     "删除",
 )
 
-private fun process(group: ViewGroup, msg: MsgRecord?) {
+private fun process(group: ViewGroup, msg: MsgRecord?, dismiss: () -> Unit) {
     group.removeViewAt(0)
     val linear = group.getChildAt(0).asGroup()
         .getChildAt(0).asGroup()
@@ -71,6 +73,32 @@ private fun process(group: ViewGroup, msg: MsgRecord?) {
         .height(if (Utils.isRoundScreen) 0.16f.vh else 0)
     if (Utils.isRoundScreen) {
         linear.paddingHorizontal(0.1f.vh)
+    }
+    // 纯文本消息没有原生「转发」入口，这里手动注入一个转发按钮。
+    if (msg != null) {
+        val text = msg.elements
+            ?.filter { it.elementType == ElementType.TEXT }
+            ?.mapNotNull { it.textElement?.content }
+            ?.joinToString("")
+            ?.takeIf { it.isNotEmpty() }
+        if (text != null) {
+            linear.addView(
+                create<TextView>(linear.context)
+                    .width(FILL)
+                    .gravity(Gravity.CENTER)
+                    .padding(6.dp)
+                    .text("转发")
+                    .textSize(16f)
+                    .background(roundCornerDrawable(
+                        color = Colors.replyBackground,
+                        radius = 16.dpf
+                    ))
+                    .clickable {
+                        linear.forwardText(text)
+                        dismiss()
+                    }
+            )
+        }
     }
     if (msg != null && CurrentContact.isGroup) {
         CurrentGroupMembers.get(SelfContact.peerUid) {
@@ -129,7 +157,7 @@ class 长按菜单调整(p0: (MenuItemFactory.ItemEnum) -> Unit, p1: String?) :
         }.getOrNull()
         return super.onCreateView(inflater, container, savedInstanceState).apply {
             this.asGroup().getChildAt(0).asGroup().let { group ->
-                process(group, msg)
+                process(group, msg) { dismiss() }
             }
         }
     }

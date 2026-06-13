@@ -32,6 +32,7 @@ import com.tencent.qqnt.watch.contact.FriendSelectData
 import com.tencent.qqnt.watch.contact.api.IContactRuntimeService
 import com.tencent.richframework.widget.matrix.RFWMatrixImageView
 import com.tencent.watch.aio_impl.ui.menu.AIOLongClickMenuFragment
+import com.tencent.watch.ime.util.ImeTextUtil
 import com.tencent.watch.aio_impl.ui.menu.MenuItemFactory
 import loadPicElement
 import download
@@ -213,11 +214,13 @@ private fun doAddFavEmoji(context: Context, file: File) {
     })
 }
 
-private fun View.sharePic(context: Context, pic: PicElement) {
-    val path = picLocalPath(context, pic) ?: run {
-        Utils.log("sharePic: no local path for ${pic.md5HexStr}")
-        return
-    }
+/**
+ * 打开 QQ 的好友选择器，把构建好的消息元素转发到所选的会话中。
+ * 与「复读」(RepeatMsg) 不同，这里是真正转发到其它会话，而不是在当前会话重发。
+ * 混淆字段说明：FriendSelectData.b = uid，FriendSelectData.e = 是否群聊。
+ * 0x7e0805cd = R.drawable.icon_share。
+ */
+private fun View.forwardToFriends(title: String = "转发", buildElements: () -> ArrayList<MsgElement>) {
     val navFragment = WatchPicElementExtKt.W(this)?.let { WatchPicElementExtKt.Y(it) } ?: return
     val app = MobileQQ.getMobileQQ().peekAppRuntime() ?: return
     val contactService =
@@ -227,7 +230,7 @@ private fun View.sharePic(context: Context, pic: PicElement) {
         navFragment,
         emptyList(),
         arrayListOf(app.currentUid),
-        "分享",
+        title,
         0x7e0805cd,
         1,
         10,
@@ -236,19 +239,35 @@ private fun View.sharePic(context: Context, pic: PicElement) {
         true
     ) { _, friends: List<FriendSelectData> ->
         if (friends.isNotEmpty()) {
-            val element = QRoute.api(IMsgApi::class.java).createPicElement(path, 0)
+            val elements = buildElements()
             friends.forEach { friend ->
                 val target = Contact(if (friend.e) 2 else 1, friend.b, "")
                 MsgUtil.msgService.sendMsg(
                     target,
                     0L,
-                    arrayListOf(element),
+                    elements,
                     IOperateCallback { code, msg ->
-                        Utils.log("share send result=$code msg=$msg")
+                        Utils.log("forward send result=$code msg=$msg")
                     }
                 )
             }
         }
+    }
+}
+
+/** 把一段文本转发给所选的好友/群聊。 */
+fun View.forwardText(text: CharSequence) = forwardToFriends {
+    ImeTextUtil.a.b(text.toString())
+}
+
+/** 把图片转发给所选的好友/群聊（转发）。 */
+private fun View.sharePic(context: Context, pic: PicElement) {
+    val path = picLocalPath(context, pic) ?: run {
+        Utils.log("sharePic: no local path for ${pic.md5HexStr}")
+        return
+    }
+    forwardToFriends {
+        arrayListOf(QRoute.api(IMsgApi::class.java).createPicElement(path, 0))
     }
 }
 
@@ -346,11 +365,12 @@ class DetailFragment(private val contact: Contact, private val data: ForwardMsgD
                                             summaryView.longClickable {
                                                 summaryView.showHistoryMenu(
                                                     msg.msgId,
-                                                    listOf(MENU_COPY, MENU_REPEAT)
+                                                    listOf(MENU_COPY, MENU_REPEAT, MENU_SHARE)
                                                 ) { item ->
                                                     when (item) {
                                                         MENU_COPY -> copyText(group.context, summary)
                                                         MENU_REPEAT -> repeatText(summary)
+                                                        MENU_SHARE -> summaryView.forwardText(summary)
                                                         else -> {}
                                                     }
                                                 }
