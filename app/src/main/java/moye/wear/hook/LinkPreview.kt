@@ -27,6 +27,7 @@ import momoi.mod.qqpro.lib.textSize
 import momoi.mod.qqpro.lib.vertical
 import momoi.mod.qqpro.lib.width
 import momoi.mod.qqpro.util.runOnUi
+import momoi.mod.qqpro.util.Utils
 import momoi.mod.qqpro.warp
 import java.net.URI
 import java.util.WeakHashMap
@@ -165,7 +166,7 @@ object LinkPreview {
             tvSite.text = host
             tvTitle.text = "解析中…"
 
-            root.setOnClickListener { it.openLinkWithConfirm(url) }
+            root.setOnClickListener { Utils.openUrl(LinkText.withScheme(url)) }
 
             cache[url]?.let { apply(my, url, it); return }
             if (cache.containsKey(url)) { // 命中"抓过但没结果"

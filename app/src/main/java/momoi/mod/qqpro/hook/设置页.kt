@@ -96,11 +96,6 @@ class 设置页 : SettingsActivity() {
                 Settings.hideVoiceButton
             )
             switch(
-                "链接跳转确认",
-                "点击链接前弹窗确认，避免误触",
-                Settings.confirmOpenLink
-            )
-            switch(
                 "识别无前缀链接",
                 "识别 example.com 这类没有 http 前缀的链接",
                 Settings.wideUrlMatch

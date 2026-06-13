@@ -8,7 +8,6 @@ import android.text.style.URLSpan
 import android.view.View
 import android.widget.TextView
 import moye.wear.hook.LinkText
-import moye.wear.hook.openLinkWithConfirm
 
 fun TextView.linkify() {
     val spannable = SpannableStringBuilder(text)
@@ -24,8 +23,8 @@ fun TextView.linkify() {
         spannable.setSpan(
             object : ClickableSpan() {
                 override fun onClick(widget: View) {
-                    // 走带确认的统一入口，裸链接会在打开时补全协议头
-                    widget.openLinkWithConfirm(url)
+                    // 裸链接会在打开时补全协议头
+                    Utils.openUrl(LinkText.withScheme(url))
                 }
             },
             start,

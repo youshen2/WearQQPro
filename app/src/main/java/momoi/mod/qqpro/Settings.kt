@@ -14,8 +14,6 @@ object Settings {
     val hideVoiceButton = BooleanPref("hideVoiceButton", false)
     val enableExtraMenu = BooleanPref("enableExtraMenu", false)
 
-    // 点击链接前先弹窗确认，避免误触跳转
-    val confirmOpenLink = BooleanPref("confirmOpenLink", true)
     // 识别没有 http(s):// 前缀的裸链接（如 example.com/path）
     val wideUrlMatch = BooleanPref("wideUrlMatch", true)
     // 在聊天消息下方展示链接预览卡片（会向链接所在站点发起网络请求，默认关闭）
