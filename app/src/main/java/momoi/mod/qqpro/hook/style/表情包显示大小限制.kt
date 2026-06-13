@@ -12,16 +12,28 @@ val heightLimit = Resources.getSystem().displayMetrics.heightPixels * 0.5f
 class 表情包显示大小限制(context: Context) : RoundBubbleImageView(context) {
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        maxHeight = heightLimit.toInt()
-        maxWidth = drawable?.bounds?.let {
-            (heightLimit / it.height() * it.width()).toInt()
-        } ?: Int.MAX_VALUE
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        if (height > maxHeight) {
-            super.onMeasure(
-                MeasureSpec.makeMeasureSpec(maxWidth, MeasureSpec.AT_MOST),
-                MeasureSpec.makeMeasureSpec(maxHeight, MeasureSpec.AT_MOST)
-            )
+        val d = drawable
+        val iw = d?.intrinsicWidth ?: 0
+        val ih = d?.intrinsicHeight ?: 0
+        val box = maxOf(layoutParams?.width ?: 0, layoutParams?.height ?: 0)
+        if (iw > 0 && ih > 0 && box > 0) {
+            var w: Int
+            var h: Int
+            if (iw >= ih) {
+                w = box
+                h = (box.toFloat() / iw * ih).toInt()
+            } else {
+                h = box
+                w = (box.toFloat() / ih * iw).toInt()
+            }
+            val cap = heightLimit.toInt()
+            if (h > cap) {
+                w = (w.toFloat() * cap / h).toInt()
+                h = cap
+            }
+            setMeasuredDimension(w.coerceAtLeast(1), h.coerceAtLeast(1))
+            return
         }
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 }

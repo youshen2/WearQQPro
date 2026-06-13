@@ -12,8 +12,8 @@ class MyImageView(context: Context) : ImageView(context) {
     }
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         maxHeight = (heightLimit * 1.5f).toInt()
-        maxWidth = drawable?.bounds?.let {
-            (heightLimit / it.height() * it.width()).toInt()
+        maxWidth = drawable?.takeIf { it.intrinsicHeight > 0 }?.let {
+            (heightLimit / it.intrinsicHeight * it.intrinsicWidth).toInt()
         } ?: Int.MAX_VALUE
         if (maxWidth < maxHeight) maxWidth = maxHeight
         super.onMeasure(
