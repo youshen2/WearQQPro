@@ -8,15 +8,11 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.TextView
-import androidx.core.content.edit
-import androidx.core.view.forEach
 import androidx.core.widget.doAfterTextChanged
 import momoi.anno.mixin.Mixin
 import momoi.mod.qqpro.Pref
 import momoi.mod.qqpro.Settings
-import momoi.mod.qqpro.util.Utils
 import momoi.mod.qqpro.asGroup
-import momoi.mod.qqpro.forEachAll
 import momoi.mod.qqpro.lib.FILL
 import momoi.mod.qqpro.lib.GroupScope
 import momoi.mod.qqpro.lib.LinearScope
@@ -32,6 +28,7 @@ import momoi.mod.qqpro.lib.textColor
 import momoi.mod.qqpro.lib.textSize
 import momoi.mod.qqpro.lib.vertical
 import momoi.mod.qqpro.lib.width
+import moye.wear.DisplayConfig
 import moye.wearqq.SettingsActivity
 
 @Mixin
@@ -42,8 +39,7 @@ class 设置页 : SettingsActivity() {
         val linear = findViewById<View>(2114521834).parent.parent.asGroup()
         linear.parent.asGroup().requestFocus()
         (linear.getChildAt(linear.childCount - 1) as? TextView)?.let {
-            it.text =
-                "禁止删除\"爅峫\"署名或进行商用,否则将会追究\n下面是QQPro的设置 by java30433\n不准你们骂才羽桃井😭😭"
+            it.text = DisplayConfig.settingPageText
             (it.layoutParams as? MarginLayoutParams)?.setMargins(0, 0, 0, 0)
         }
         GroupScope(linear).apply {

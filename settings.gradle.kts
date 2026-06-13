@@ -21,7 +21,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "QQPro"
+rootProject.name = "WearQQ"
 include(":app")
 include(":ApkMixin-annotation")
 include(":ApkMixin-gen-dep")

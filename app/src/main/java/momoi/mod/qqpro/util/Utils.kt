@@ -33,7 +33,7 @@ object Utils {
     }
 
     fun log(msg: String) {
-        Log.e("QQPro", msg)
+        Log.e("WearQQ", msg)
     }
 
     val heightPixels = Resources.getSystem().displayMetrics.heightPixels

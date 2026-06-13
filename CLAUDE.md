@@ -69,7 +69,6 @@ The annotation library is in `ApkMixin-annotation/`; the Gradle plugin that does
 ## Key Conventions
 
 - **Views are built in Kotlin DSL** (`lib/ViewDSL.kt`, `lib/LinearLayout.kt`, etc.) — no XML layouts exist in this project
-- **Logging**: use `Utils.log("message")` (tag: `"QQ Max"`) as the primary logger — this matches what the decompiled app uses and shows up in the log viewer. `Log.e("QQPro", ...)` is secondary. **Never use `adb logcat -c` to clear logs.**
 - Settings are persisted in SharedPreferences named `"qqpro"`; the existing WearQQ app uses `"wearqq"`
 - `CurrentContact`, `CurrentMsgList`, `SelfContact` in `hook/action/` are global singletons updated by hooks — query them to know the active chat context
 - Colors for nick tags and UI elements are centralized in `Colors.kt`
@@ -86,3 +85,8 @@ Both are in `.gitignore`. To regenerate:
 jadx -d app/decompiled/jadx --no-res --show-bad-code app/mixin/source.apk
 apktool d -f -o app/decompiled/apktool app/mixin/source.apk
 ```
+
+You can use Gitlab and Github tools, not only can fetch Web.
+
+所有新增加的Hook类都应该放进moye.wear.hook包下，而不是momoe.hook.qqpro。
+增加注释时使用中文。
