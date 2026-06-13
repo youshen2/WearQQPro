@@ -123,9 +123,9 @@ object GroupAvatarHook {
         }
     }
 
-    /** 把圆形头像作为左侧 compound drawable 挂到昵称上，尺寸约为文字高度的 3 倍。 */
+    /** 把圆形头像作为左侧 compound drawable 挂到昵称上，尺寸为文字高度的若干倍（可在设置中调整）。 */
     private fun applyAvatar(nick: TextView, bitmap: Bitmap) {
-        val size = (nick.textSize * 3f).toInt().coerceAtLeast(1)
+        val size = (nick.textSize * Settings.avatarSizeScale.value).toInt().coerceAtLeast(1)
         val drawable = BitmapDrawable(nick.resources, bitmap).apply {
             setBounds(0, 0, size, size)
         }

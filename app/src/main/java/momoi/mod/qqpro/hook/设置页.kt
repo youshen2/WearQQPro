@@ -110,6 +110,11 @@ class 设置页 : SettingsActivity() {
                 "在群聊昵称左侧显示发送者头像，会从头像服务器拉取图片",
                 Settings.showGroupAvatar
             )
+            floatInput(
+                "头像大小",
+                "群聊头像相对昵称文字的倍数，默认 2.4",
+                Settings.avatarSizeScale
+            )
             switch(
                 "合并连续消息头",
                 "同一人连续发言时只在第一条显示头像和昵称",

@@ -20,6 +20,8 @@ object Settings {
     val enableLinkPreview = BooleanPref("enableLinkPreview", false)
     // 群聊昵称左侧显示发送者头像（会从 QQ 头像 CDN 拉取图片，默认关闭）
     val showGroupAvatar = BooleanPref("showGroupAvatar", false)
+    // 群聊头像大小，相对昵称文字的倍数，默认 2.4 倍
+    val avatarSizeScale = FloatPref("avatarSizeScale", 2.4f)
     // 同一人连续发言时，只在第一条显示头像/昵称/等级，其余合并（默认关闭）
     val hideRepeatedSender = BooleanPref("hideRepeatedSender", false)
 
