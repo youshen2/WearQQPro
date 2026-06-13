@@ -75,7 +75,7 @@ class MixinPlugin : Plugin<Project> {
             project.outputDir(extension).child(extension.output.unsignedFileName).absolutePath,
             "-d", if (isDebug) "1" else "0",
             "-vn", extension.versionName,
-            "-aa", "android-label:QQ Max",
+            "-aa", "android-label:WearQQ",
             "--force"
         )
     }
