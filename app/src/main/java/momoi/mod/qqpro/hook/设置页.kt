@@ -85,6 +85,11 @@ class 设置页 : SettingsActivity() {
             add<View>()
                 .height(12.dp)
             sectionTitle("WearQQ Pro设置")
+            switch(
+                "隐藏语音键",
+                "开启后聊天页面不再显示语音按钮",
+                Settings.hideVoiceButton
+            )
             saveButton?.let { add(it) }
             add<View>()
                 .height(64.dp)

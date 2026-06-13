@@ -1,6 +1,6 @@
-# AGENTS.md
+# CLAUDE.md
 
-This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What This Project Is
 
@@ -90,3 +90,4 @@ You can use Gitlab and Github tools, not only can fetch Web.
 
 所有新增加的Hook类都应该放进moye.wear.hook包下，而不是momoe.hook.qqpro。
 增加注释时使用中文。
+如果需要增加设置项，请加在sectionTitle("WearQQ Pro设置")的下面。

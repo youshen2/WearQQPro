@@ -60,12 +60,16 @@ class 聊天底部按钮调整() : `InputBarController$inputContent$2`() {
                         .bitmapDecodeAssets("pro/ic_emoji.png").padding(8.dp).clickable {
                             emoji.callOnClick()
                         }
-                    val voice =
+                    val voice = if (Settings.hideVoiceButton.value) {
+                        null
+                    } else {
                         create<ImageView>().height(FILL).adjustViewBounds().background(roundBg)
                             .bitmapDecodeAssets("pro/ic_voice.png").padding(6.dp)
-                            .scaleType(ImageView.ScaleType.FIT_CENTER)
-                    ThreadManagerV2.getUIHandlerV2().post {
-                        b.e.invoke(voice)
+                            .scaleType(ImageView.ScaleType.FIT_CENTER).also {
+                                ThreadManagerV2.getUIHandlerV2().post {
+                                    b.e.invoke(it)
+                                }
+                            }
                     }
                     val input = if (Settings.text.isEmpty()) {
                         create<ImageView>().bitmapDecodeAssets("pro/ic_keyboard.png")
@@ -80,10 +84,12 @@ class 聊天底部按钮调整() : `InputBarController$inputContent$2`() {
 
                     if (Settings.swapCenterKeyboard.value) {
                         add(input.marginHorizontal(2.dp))
-                        add(voice)
+                        voice?.let { add(it) }
                     } else {
-                        add(voice.marginHorizontal(2.dp))
-                        add(input)
+                        voice?.let {
+                            add(it.marginHorizontal(2.dp))
+                            add(input)
+                        } ?: add(input.marginHorizontal(2.dp))
                     }
                 }
         }
