@@ -102,3 +102,10 @@ fun View.showDialog(dialog: MyDialogFragment) {
         Random.nextInt().toString()
     )
 }
+
+fun View.showFragment(fragment: androidx.fragment.app.DialogFragment) {
+    fragment.show(
+        WatchPicElementExtKt.W(this)!!.childFragmentManager,
+        Random.nextInt().toString()
+    )
+}

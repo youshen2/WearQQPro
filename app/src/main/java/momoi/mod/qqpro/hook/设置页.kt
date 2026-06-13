@@ -83,7 +83,7 @@ class 设置页 : SettingsActivity() {
                 Settings.swapCenterKeyboard
             )
             add<View>()
-                .height(12.dp)
+                .height(6.dp)
             sectionTitle("WearQQ Pro设置")
             switch(
                 "启用附加菜单",

@@ -51,7 +51,7 @@ val menuSort = arrayOf(
     "删除",
 )
 
-private fun process(group: ViewGroup, msg: MsgRecord) {
+private fun process(group: ViewGroup, msg: MsgRecord?) {
     group.removeViewAt(0)
     val linear = group.getChildAt(0).asGroup()
         .getChildAt(0).asGroup()
@@ -72,7 +72,7 @@ private fun process(group: ViewGroup, msg: MsgRecord) {
     if (Utils.isRoundScreen) {
         linear.paddingHorizontal(0.1f.vh)
     }
-    if (CurrentContact.isGroup) {
+    if (msg != null && CurrentContact.isGroup) {
         CurrentGroupMembers.get(SelfContact.peerUid) {
             if (it.role == MemberRole.OWNER || it.role == MemberRole.ADMIN) {
                 linear.post {
@@ -120,12 +120,16 @@ class 长按菜单调整(p0: (MenuItemFactory.ItemEnum) -> Unit, p1: String?) :
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val field = this.b.javaClass.getDeclaredField("b")
-        field.isAccessible = true
-        val cell = field.get(this.b) as WatchAIOGroupWidgetItemCell<*, *>
+        // 自建长按菜单没有原生 cell，上面的撤回按钮在这种场景下直接降级跳过。
+        val msg = runCatching {
+            val field = this.b.javaClass.getDeclaredField("b")
+            field.isAccessible = true
+            val cell = field.get(this.b) as WatchAIOGroupWidgetItemCell<*, *>
+            cell.f()!!.d
+        }.getOrNull()
         return super.onCreateView(inflater, container, savedInstanceState).apply {
             this.asGroup().getChildAt(0).asGroup().let { group ->
-                process(group, cell.f()!!.d)
+                process(group, msg)
             }
         }
     }

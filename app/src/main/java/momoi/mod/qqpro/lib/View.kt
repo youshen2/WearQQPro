@@ -64,3 +64,10 @@ inline fun <T : View> T.clickable(crossinline onClick: ()->Unit) = apply {
         onClick()
     }
 }
+
+inline fun <T : View> T.longClickable(crossinline onLongClick: () -> Unit) = apply {
+    setOnLongClickListener {
+        onLongClick()
+        true
+    }
+}
