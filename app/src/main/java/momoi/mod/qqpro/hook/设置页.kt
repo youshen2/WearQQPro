@@ -110,6 +110,11 @@ class 设置页 : SettingsActivity() {
                 "在群聊昵称左侧显示发送者头像，会从头像服务器拉取图片",
                 Settings.showGroupAvatar
             )
+            switch(
+                "合并连续消息头",
+                "同一人连续发言时只在第一条显示头像和昵称",
+                Settings.hideRepeatedSender
+            )
             saveButton?.let { add(it) }
             add<View>()
                 .height(64.dp)

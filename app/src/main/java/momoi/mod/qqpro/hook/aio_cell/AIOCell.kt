@@ -12,9 +12,11 @@ import com.tencent.watch.aio_impl.ui.cell.base.BaseWatchItemCell
 import com.tencent.watch.aio_impl.ui.cell.unsupport.WatchToQQViewMsgItem
 import com.tencent.watch.aio_impl.ui.widget.AIOCellGroupWidget
 import momoi.anno.mixin.Mixin
+import momoi.mod.qqpro.Settings
 import momoi.mod.qqpro.enums.NTMsgType
 import momoi.mod.qqpro.hook.action.CurrentContact
 import momoi.mod.qqpro.hook.action.CurrentGroupMembers
+import momoi.mod.qqpro.hook.action.CurrentMsgList
 import momoi.mod.qqpro.hook.action.isGroup
 import momoi.mod.qqpro.lib.create
 import momoi.mod.qqpro.util.linkify
@@ -119,11 +121,30 @@ object AIOCell {
             super.i(view, item, p3, p4, p5, p6)
             val widget = view as? AIOCellGroupWidget ?: return
             if (CurrentContact.isGroup) {
-                val raw = widget.getNickWidget<TextView>()?.text!!
-                CurrentGroupMembers.get(item.d.senderUid) { member ->
-                    widget.post {
-                        if (widget.getNickWidget<TextView>()?.text == raw) {
-                            GroupAvatarHook.update(widget, member)
+                val senderUid = item.d.senderUid
+                val hideHeader = Settings.hideRepeatedSender.value && run {
+                    val idx = CurrentMsgList.getMsgIndex(item)
+                    val prev = CurrentMsgList.msgList.value.getOrNull(idx - 1)
+                    prev != null && prev.d.senderUid == senderUid
+                }
+                val nickView = widget.getNickWidget<TextView>()
+                if (hideHeader) {
+                    nickView?.let {
+                        it.visibility = View.VISIBLE
+                        it.text = ""
+                        it.setCompoundDrawables(null, null, null, null)
+                        it.layoutParams = it.layoutParams?.apply { height = 0 }
+                    }
+                } else {
+                    nickView?.layoutParams = nickView?.layoutParams?.apply {
+                        height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    }
+                    val raw = nickView?.text!!
+                    CurrentGroupMembers.get(senderUid) { member ->
+                        widget.post {
+                            if (widget.getNickWidget<TextView>()?.text == raw) {
+                                GroupAvatarHook.update(widget, member)
+                            }
                         }
                     }
                 }

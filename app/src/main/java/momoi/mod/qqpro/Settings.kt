@@ -20,6 +20,8 @@ object Settings {
     val enableLinkPreview = BooleanPref("enableLinkPreview", false)
     // 群聊昵称左侧显示发送者头像（会从 QQ 头像 CDN 拉取图片，默认关闭）
     val showGroupAvatar = BooleanPref("showGroupAvatar", false)
+    // 同一人连续发言时，只在第一条显示头像/昵称/等级，其余合并（默认关闭）
+    val hideRepeatedSender = BooleanPref("hideRepeatedSender", false)
 
     private val moye = Utils.application.getSharedPreferences("wearqq", 0)
     val text get() = moye.getString("voice_btn_text", "")?.let {
