@@ -2,31 +2,24 @@ package momoi.mod.qqpro.hook.aio_cell
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.text.style.RelativeSizeSpan
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.core.text.buildSpannedString
-import androidx.core.text.inSpans
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
-import com.tencent.qqnt.kernel.nativeinterface.MemberInfo
-import com.tencent.qqnt.kernel.nativeinterface.MemberRole
 import com.tencent.watch.aio_impl.data.WatchAIOMsgItem
 import com.tencent.watch.aio_impl.ui.cell.base.BaseWatchItemCell
 import com.tencent.watch.aio_impl.ui.cell.unsupport.WatchToQQViewMsgItem
 import com.tencent.watch.aio_impl.ui.widget.AIOCellGroupWidget
 import momoi.anno.mixin.Mixin
-import momoi.mod.qqpro.Colors
 import momoi.mod.qqpro.enums.NTMsgType
 import momoi.mod.qqpro.hook.action.CurrentContact
 import momoi.mod.qqpro.hook.action.CurrentGroupMembers
-import momoi.mod.qqpro.hook.action.SelfContact
 import momoi.mod.qqpro.hook.action.isGroup
-import momoi.mod.qqpro.lib.RadiusBackgroundSpan
 import momoi.mod.qqpro.lib.create
 import momoi.mod.qqpro.util.linkify
 import momoi.mod.qqpro.warp
+import moye.wear.hook.GroupAvatarHook
 import moye.wear.hook.LinkPreview
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
@@ -127,10 +120,10 @@ object AIOCell {
             val widget = view as? AIOCellGroupWidget ?: return
             if (CurrentContact.isGroup) {
                 val raw = widget.getNickWidget<TextView>()?.text!!
-                CurrentGroupMembers.get(item.d.senderUid) {
+                CurrentGroupMembers.get(item.d.senderUid) { member ->
                     widget.post {
                         if (widget.getNickWidget<TextView>()?.text == raw) {
-                            widget.getNickWidget<TextView>()?.text = it.toDisplay()
+                            GroupAvatarHook.update(widget, member)
                         }
                     }
                 }
@@ -151,64 +144,7 @@ object AIOCell {
                     it.height = ViewGroup.LayoutParams.WRAP_CONTENT
                 }
             }
-            // 文本消息下方挂载链接预览卡片（按开关与是否含链接决定显隐）
             LinkPreview.bind(widget, (widget.contentWidget as? TextView)?.text)
-        }
-    }
-
-    private const val TYPE_OWNER = 1
-    private const val TYPE_ADMIN = 2
-    private const val TYPE_SPECIAL = 3
-    private const val TYPE_NORMAL = 0
-    private fun MemberInfo.toDisplay() = buildSpannedString {
-        val type = when (true) {
-            (role == MemberRole.OWNER) -> TYPE_OWNER
-            (role == MemberRole.ADMIN) -> TYPE_ADMIN
-            !memberSpecialTitle.isNullOrEmpty() -> TYPE_SPECIAL
-            else -> TYPE_NORMAL
-        }
-        val name = when (true) {
-            cardName.isNotEmpty() -> cardName
-            remark.isNotEmpty() -> remark
-            else -> nick
-        }
-        val isSelf = uid == SelfContact.peerUid
-        if (isSelf) {
-            append(name)
-            append(" ")
-        }
-        inSpans(
-            RadiusBackgroundSpan(
-                bgColor = when (type) {
-                    TYPE_ADMIN -> Colors.NickTag.adminBg
-                    TYPE_OWNER -> Colors.NickTag.ownerBg
-                    TYPE_SPECIAL -> Colors.NickTag.specialBg
-                    else -> Colors.NickTag.normalBg
-                },
-                textColor = when (type) {
-                    TYPE_ADMIN -> Colors.NickTag.adminText
-                    TYPE_OWNER -> Colors.NickTag.ownerText
-                    TYPE_SPECIAL -> Colors.NickTag.specialText
-                    else -> Colors.NickTag.normalText
-                }
-            ),
-            RelativeSizeSpan(0.8f)
-        ) {
-            append("LV")
-            append(memberLevel.toString())
-            if (!memberSpecialTitle.isNullOrEmpty()) {
-                append(" ")
-                append(memberSpecialTitle)
-            } else {
-                when (type) {
-                    TYPE_OWNER -> append(" 群主")
-                    TYPE_ADMIN -> append(" 管理员")
-                }
-            }
-        }
-        if (!isSelf) {
-            append(" ")
-            append(name)
         }
     }
 }

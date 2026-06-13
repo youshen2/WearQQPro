@@ -105,6 +105,11 @@ class 设置页 : SettingsActivity() {
                 "在消息下方展示链接预览，会向链接站点发起请求",
                 Settings.enableLinkPreview
             )
+            switch(
+                "群聊显示头像",
+                "在群聊昵称左侧显示发送者头像，会从头像服务器拉取图片",
+                Settings.showGroupAvatar
+            )
             saveButton?.let { add(it) }
             add<View>()
                 .height(64.dp)

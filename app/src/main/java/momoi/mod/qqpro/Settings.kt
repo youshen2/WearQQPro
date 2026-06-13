@@ -18,6 +18,8 @@ object Settings {
     val wideUrlMatch = BooleanPref("wideUrlMatch", true)
     // 在聊天消息下方展示链接预览卡片（会向链接所在站点发起网络请求，默认关闭）
     val enableLinkPreview = BooleanPref("enableLinkPreview", false)
+    // 群聊昵称左侧显示发送者头像（会从 QQ 头像 CDN 拉取图片，默认关闭）
+    val showGroupAvatar = BooleanPref("showGroupAvatar", false)
 
     private val moye = Utils.application.getSharedPreferences("wearqq", 0)
     val text get() = moye.getString("voice_btn_text", "")?.let {
