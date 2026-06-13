@@ -122,10 +122,13 @@ object AIOCell {
             val widget = view as? AIOCellGroupWidget ?: return
             if (CurrentContact.isGroup) {
                 val senderUid = item.d.senderUid
-                val hideHeader = Settings.hideRepeatedSender.value && run {
+                val hideHeader = Settings.hideRepeatedSender.value
+                        && item.d.msgType != NTMsgType.GRAYTIPS
+                        && run {
                     val idx = CurrentMsgList.getMsgIndex(item)
                     val prev = CurrentMsgList.msgList.value.getOrNull(idx - 1)
-                    prev != null && prev.d.senderUid == senderUid
+                    prev != null && prev.d.msgType != NTMsgType.GRAYTIPS
+                            && prev.d.senderUid == senderUid
                 }
                 val nickView = widget.getNickWidget<TextView>()
                 if (hideHeader) {
