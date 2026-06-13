@@ -67,12 +67,25 @@ class SkipAction(
     }
 
     override fun onClick(v: View?) {
-        if (!isClicked && lastUnreadMsg != null) {
-           CurrentMsgList.upwardMsg(CurrentMsgList.getMsgIndex(lastUnreadMsg!!), count) {
-                rv.scrollToPosition(it)
-           }
+        if (isClicked) return
+        val list = CurrentMsgList.msgList.value
+        Utils.log("SkipAction onClick. count: $count, lastUnreadMsg: $lastUnreadMsg, listSize: ${list.size}")
+        when {
+            // 已经滚动过，记录了最后一条未读消息，按其索引跳转
+            lastUnreadMsg != null -> {
+                CurrentMsgList.upwardMsg(CurrentMsgList.getMsgIndex(lastUnreadMsg!!), count) {
+                    rv.scrollToPosition(it)
+                }
+                isClicked = true
+            }
+            // 还未滚动过，直接从最新一条消息向上推算首条未读的位置
+            list.isNotEmpty() && count > 0 -> {
+                CurrentMsgList.upwardMsg(list.size - 1, count - 1) {
+                    rv.scrollToPosition(it)
+                }
+                isClicked = true
+            }
         }
-        isClicked = true
     }
 }
 @Mixin
