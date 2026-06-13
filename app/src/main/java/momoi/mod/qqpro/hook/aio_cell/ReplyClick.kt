@@ -6,6 +6,7 @@ import com.tencent.qqnt.kernel.nativeinterface.ReplyElement
 import com.tencent.watch.aio_impl.ui.widget.AIOCellGroupWidget
 import momoi.mod.qqpro.hook.action.CurrentMsgList
 import momoi.mod.qqpro.hook.view.smoothScrollToStart
+import momoi.mod.qqpro.util.Utils
 
 class ReplyClick(
     val widget: AIOCellGroupWidget,
@@ -25,6 +26,9 @@ class ReplyClick(
                 finding = false
                 if (item != null) {
                     rv.smoothScrollToStart(CurrentMsgList.getMsgIndex(item))
+                }
+                else {
+                    Utils.toast(rv.context, "无法定位消息")
                 }
             }
         )

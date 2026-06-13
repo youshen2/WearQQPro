@@ -1,8 +1,6 @@
 package momoi.mod.qqpro.hook.aio_cell
 
 import android.annotation.SuppressLint
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.os.Bundle
 import android.view.Gravity
@@ -13,7 +11,6 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.tencent.biz.richframework.util.RFWSaveUtil
 import com.tencent.mobileqq.qroute.QRoute
@@ -132,11 +129,6 @@ private fun View.showHistoryMenu(
     showFragment(fragment)
 }
 
-private fun copyText(context: Context, text: CharSequence) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboard.setPrimaryClip(ClipData.newPlainText("text", text))
-}
-
 private fun savePic(context: Context, pic: PicElement) {
     val cacheFile = context.externalCacheDir!!.child("${pic.md5HexStr}.jpg")
     if (cacheFile.exists()) {
@@ -205,11 +197,10 @@ private fun doAddFavEmoji(context: Context, file: File) {
     msgService.addFavEmoji(req, IAddFavEmojiCallback { code, msg, type ->
         Utils.log("saveFavEmoji result=$code msg=$msg type=$type")
         runOnUi {
-            Toast.makeText(
+            Utils.toast(
                 context,
-                if (type == 1) "表情已存在" else if (code == 0) "收藏表情成功" else "收藏表情失败",
-                Toast.LENGTH_SHORT
-            ).show()
+                if (type == 1) "表情已存在" else if (code == 0) "收藏表情成功" else "收藏表情失败"
+            )
         }
     })
 }
@@ -368,7 +359,7 @@ class DetailFragment(private val contact: Contact, private val data: ForwardMsgD
                                                     listOf(MENU_COPY, MENU_REPEAT, MENU_SHARE)
                                                 ) { item ->
                                                     when (item) {
-                                                        MENU_COPY -> copyText(group.context, summary)
+                                                        MENU_COPY -> Utils.copyToClipboard(group.context, summary)
                                                         MENU_REPEAT -> repeatText(summary)
                                                         MENU_SHARE -> summaryView.forwardText(summary)
                                                         else -> {}

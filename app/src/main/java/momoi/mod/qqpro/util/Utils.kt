@@ -2,13 +2,18 @@ package momoi.mod.qqpro.util
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.res.Resources
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import android.widget.Toast
 import com.tencent.mobileqq.utils.TimeFormatterUtils
+import com.tencent.mobileqq.widget.QQToast
 import androidx.core.net.toUri
 
 object Utils {
@@ -49,5 +54,16 @@ object Utils {
         if (intent.resolveActivity(application.packageManager) != null) {
             application.startActivity(intent)
         }
+    }
+
+    fun toast(context: Context, text: CharSequence, longDuration: Boolean = false) {
+        val duration = if (longDuration) Toast.LENGTH_LONG else Toast.LENGTH_SHORT
+        QQToast.i(context, text, duration).l()
+    }
+
+    fun copyToClipboard(context: Context, text: CharSequence, toastText: CharSequence = "已复制") {
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("label", text))
+        toast(context, toastText)
     }
 }
