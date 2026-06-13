@@ -17,7 +17,7 @@ class FrameAdapterHook(
         return if (Settings.enableExtraMenu.value && count > 1) count - 1 else count
     }
 
-    override fun createFragment(position: Int): Fragment {
+    override fun f(position: Int): Fragment {
         if (!Settings.enableExtraMenu.value) {
             return super.f(position)
         }
@@ -27,4 +27,6 @@ class FrameAdapterHook(
         }
         return super.f(position + 1)
     }
+
+    override fun createFragment(position: Int): Fragment = f(position)
 }
