@@ -86,6 +86,11 @@ class 设置页 : SettingsActivity() {
                 .height(12.dp)
             sectionTitle("WearQQ Pro设置")
             switch(
+                "启用附加菜单",
+                "开启后使用加号按钮代替第二页",
+                Settings.enableExtraMenu
+            )
+            switch(
                 "隐藏语音键",
                 "开启后聊天页面不再显示语音按钮",
                 Settings.hideVoiceButton

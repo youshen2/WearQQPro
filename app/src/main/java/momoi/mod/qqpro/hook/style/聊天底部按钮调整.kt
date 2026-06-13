@@ -38,6 +38,7 @@ import momoi.mod.qqpro.lib.size
 import momoi.mod.qqpro.lib.text
 import momoi.mod.qqpro.lib.textColor
 import momoi.mod.qqpro.lib.textSize
+import moye.wear.hook.ExtraMenuOverlay
 
 @Mixin
 class 聊天底部按钮调整() : `InputBarController$inputContent$2`() {
@@ -81,15 +82,26 @@ class 聊天底部按钮调整() : `InputBarController$inputContent$2`() {
                         .background(ContextCompat.getDrawable(context, 2114457248)).clickable {
                             keyboard.callOnClick()
                         }
+                    val extraMenu = if (Settings.enableExtraMenu.value) {
+                        create<ImageView>().height(FILL).adjustViewBounds().background(roundBg)
+                            .imageResource(0x7e080564).padding(8.dp)
+                            .scaleType(ImageView.ScaleType.FIT_CENTER).clickable {
+                                ExtraMenuOverlay.toggleFromCurrent()
+                            }
+                    } else {
+                        null
+                    }
 
                     if (Settings.swapCenterKeyboard.value) {
                         add(input.marginHorizontal(2.dp))
                         voice?.let { add(it) }
+                        extraMenu?.let { add(it.margin(left = 2.dp)) }
                     } else {
                         voice?.let {
                             add(it.marginHorizontal(2.dp))
                             add(input)
                         } ?: add(input.marginHorizontal(2.dp))
+                        extraMenu?.let { add(it.margin(left = 2.dp)) }
                     }
                 }
         }
