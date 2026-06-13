@@ -7,11 +7,6 @@ import com.tencent.watch.ime.CustomEditText
 import momoi.anno.mixin.Mixin
 import moye.wear.span.ExtraSpanHelper
 
-/**
- * Makes the input EditText treat @-mention / image chips as atomic:
- *  - backspace deletes a whole chip
- *  - the caret never lands inside a chip
- */
 @Mixin
 class InputEditTextHook(context: Context, attrs: AttributeSet) : CustomEditText(context, attrs) {
 

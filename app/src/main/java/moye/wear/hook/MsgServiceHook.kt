@@ -8,14 +8,6 @@ import momoi.anno.mixin.Mixin
 import moye.wear.span.ExtraSpanHelper
 import moye.wearqq.IMEOperation
 
-/**
- * Send path for the new span input UX.
- *
- * Replaces the base mod's sendMsg (which blind-prepends @-elements positionally-unaware).
- * We instead let [ExtraSpanHelper.parseTextElements] expand the placeholder chars already
- * present in the text in-place, append any leftover carried images, then call the pristine
- * Tencent send (`sendMsg_old`) — NOT super.sendMsg, which would re-run the old processing.
- */
 @Mixin
 class MsgServiceHook : MsgServiceImpl() {
 

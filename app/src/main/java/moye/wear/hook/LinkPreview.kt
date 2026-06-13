@@ -32,23 +32,10 @@ import momoi.mod.qqpro.warp
 import java.net.URI
 import java.util.WeakHashMap
 
-/**
- * 链接预览卡片。
- *
- * 关注点：
- * - RecyclerView 会复用 cell，所以卡片视图按 [AIOCellGroupWidget] 弱引用缓存，
- *   并用一个递增的 token 标记"这次绑定的是哪条链接"，异步结果回来时先比对 token，
- *   过期的（cell 已被复用给别的消息）直接丢弃，避免错位显示。
- * - 解析结果按 URL 缓存：value 为 null 表示"抓过但没拿到有用信息"，不再重复请求。
- */
 object LinkPreview {
-
-    // 每个 cell 对应的卡片视图
     private val cards = WeakHashMap<AIOCellGroupWidget, Card>()
-    // 解析结果缓存：key = 规整后的 url，value = null 表示无可用信息
     private val cache = HashMap<String, Meta?>()
 
-    /** 抓回来的元数据。 */
     private data class Meta(
         val title: String?,
         val desc: String?,
@@ -71,11 +58,9 @@ object LinkPreview {
         }
         val url = LinkText.firstUrl(text)?.let(LinkText::withScheme)
         if (url == null) {
-            // 没有链接：已存在的卡片隐藏即可，不为无链接的消息创建/warp 视图
             cards[widget]?.hide()
             return
         }
-        // 没有内容视图（非文本消息等）就不挂卡片
         val content = widget.getContentWidget<View>() ?: run {
             cards[widget]?.hide()
             return
@@ -83,7 +68,6 @@ object LinkPreview {
         cards.getOrPut(widget) { Card(content) }.show(url)
     }
 
-    /** 单个 cell 的卡片，负责视图复用与异步填充。 */
     private class Card(content: View) {
         private lateinit var root: LinearLayout
         private lateinit var ivIcon: ImageView
@@ -92,7 +76,6 @@ object LinkPreview {
         private lateinit var tvDesc: TextView
         private lateinit var ivImage: ImageView
 
-        // 递增 token，区分"最近一次绑定的链接"，挡掉复用导致的过期回调
         private var token = 0
         private var boundUrl: String? = null
 
@@ -105,7 +88,6 @@ object LinkPreview {
                 .padding(8.dp)
                 .margin(top = 4.dp)
                 .content {
-                    // 头部：站点图标 + 站点名
                     add<LinearLayout>()
                         .width(FILL)
                         .content {
@@ -134,12 +116,10 @@ object LinkPreview {
                         .margin(top = 4.dp)
                         .scaleType(ImageView.ScaleType.FIT_CENTER)
                 }
-            // 卡片视图挂到消息文本所在的竖向容器里（warp 会把 content 包进 LinearLayout）
             val host = content.warp()
             host.addView(root)
         }
 
-        // 取消图标/标题/描述/大图，准备重新填充
         private fun reset() {
             ivIcon.setImageDrawable(null)
             ivImage.setImageDrawable(null)
@@ -154,14 +134,12 @@ object LinkPreview {
         }
 
         fun show(url: String) {
-            // 同一条链接已经显示过就不重复折腾（避免滚动时反复闪烁）
             if (boundUrl == url && root.visibility == View.VISIBLE) return
             boundUrl = url
             val my = ++token
             root.visibility = View.VISIBLE
             reset()
 
-            // 先放一个基于域名的占位，提升观感
             val host = runCatching { URI(url).host }.getOrNull().orEmpty()
             tvSite.text = host
             tvTitle.text = "解析中…"
@@ -169,20 +147,19 @@ object LinkPreview {
             root.setOnClickListener { Utils.openUrl(LinkText.withScheme(url)) }
 
             cache[url]?.let { apply(my, url, it); return }
-            if (cache.containsKey(url)) { // 命中"抓过但没结果"
+            if (cache.containsKey(url)) {
                 fallback(my, host)
                 return
             }
             resolve(url) { meta ->
                 cache[url] = meta
                 runOnUi {
-                    if (my != token) return@runOnUi // 已被复用给别的消息
+                    if (my != token) return@runOnUi
                     if (meta != null && meta.usable) apply(my, url, meta) else fallback(my, host)
                 }
             }
         }
 
-        // 无可用元数据时，退化成"只显示域名"的极简卡片
         private fun fallback(my: Int, host: String) {
             if (my != token) return
             tvSite.text = host
@@ -208,7 +185,6 @@ object LinkPreview {
         }
     }
 
-    // 后台抓取并解析页面元数据
     private fun resolve(url: String, callback: (Meta?) -> Unit) {
         Http.get(url) { body ->
             if (body.startsWith("Error:") || body.startsWith("HTTP error:")) {
@@ -218,8 +194,6 @@ object LinkPreview {
             callback(parse(url, body))
         }
     }
-
-    // ---- 解析部分：自行用正则抽取 OpenGraph / <title> ----
 
     private fun parse(url: String, html: String): Meta? {
         val head = html.substringBefore("</head>", html).take(200_000)
@@ -238,15 +212,12 @@ object LinkPreview {
         return if (meta.usable || !meta.title.isNullOrBlank()) meta else null
     }
 
-    // 匹配 <meta property="og:xxx" content="..."> 的两种属性顺序
     private fun meta(html: String, property: String): String? {
         val p = Regex.escape(property)
-        // content 在 property 之后
         Regex(
             """<meta[^>]*?(?:property|name)\s*=\s*["']$p["'][^>]*?content\s*=\s*["']([^"']*)["']""",
             RegexOption.IGNORE_CASE
         ).find(html)?.groupValues?.get(1)?.let { return it }
-        // content 在 property 之前
         return Regex(
             """<meta[^>]*?content\s*=\s*["']([^"']*)["'][^>]*?(?:property|name)\s*=\s*["']$p["']""",
             RegexOption.IGNORE_CASE
@@ -257,7 +228,6 @@ object LinkPreview {
         Regex("""<title[^>]*>([\s\S]*?)</title>""", RegexOption.IGNORE_CASE)
             .find(html)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotBlank() }
 
-    // 取 favicon，跳过 svg（项目里的 BitmapFactory 解不了）
     private fun iconLink(html: String): String? {
         val matches = Regex(
             """<link[^>]*rel\s*=\s*["'][^"']*icon[^"']*["'][^>]*>""",
@@ -272,7 +242,6 @@ object LinkPreview {
         return null
     }
 
-    // 把相对/协议相对地址补成绝对地址
     private fun resolveUrl(base: String, href: String): String? {
         return try {
             when {
@@ -285,7 +254,6 @@ object LinkPreview {
         }
     }
 
-    // 解码常见 HTML 实体
     private fun unescape(s: String): String = s
         .replace("&amp;", "&")
         .replace("&lt;", "<")
