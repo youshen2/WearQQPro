@@ -35,6 +35,7 @@ import momoi.mod.qqpro.lib.textSize
 import momoi.mod.qqpro.lib.vertical
 import momoi.mod.qqpro.lib.width
 import momoi.mod.qqpro.util.Utils
+import moye.wear.lib.SwipeBackLayout
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -135,7 +136,10 @@ class ChatSearchFragment : MyDialogFragment() {
         root.layoutParams = ViewGroup.LayoutParams(FILL, FILL)
         root.setBackgroundColor(BG)
         showMenu()
-        return root
+        return SwipeBackLayout(inflater.context).apply {
+            addView(root, FILL, FILL)
+            onSwipeBack = { dismiss() }
+        }
     }
 
     // ---- 各级界面 -------------------------------------------------------------
