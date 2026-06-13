@@ -58,6 +58,6 @@ apkMixin {
     }
 
     output {
-        signedFileName = "QQPro_${versionName}.apk"
+        signedFileName = "WearQQ_${versionName}.apk"
     }
 }

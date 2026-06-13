@@ -13,6 +13,7 @@ import com.tencent.watch.aio_impl.coreImpl.vb.WatchAIOListVB
 import com.tencent.watch.aio_impl.data.WatchAIOMsgItem
 import momoi.anno.mixin.Mixin
 import momoi.mod.qqpro.lib.Observable
+import momoi.mod.qqpro.util.ThreadManager
 import momoi.mod.qqpro.util.Utils
 import java.util.LinkedList
 
@@ -54,22 +55,92 @@ object CurrentMsgList {
         }
     }
 
+    /**
+     * 向上分页加载历史消息，直到到达历史顶部（列表不再增长），随后在 UI 线程调用 [onDone]。
+     * 每加载一页后会通过 [onProgress] 回传当前消息总数。聊天记录搜索需要把全部历史加载进内存，故使用此方法。
+     *
+     * [shouldContinue] 会在每次分页前以及每个回调前检查——传入生命周期判断（如 `{ isAdded }`），
+     * 这样在搜索被关闭/取消后能及时停止加载链，而不会在后台把整段历史拉完并触发已失效的回调。
+     *
+     * 加载前会先清掉 [isLoadingMsg]：上一次被中断的加载（聊天中途关闭）可能把该守卫卡在 `true`，
+     * 否则 [loadMoreMsg] 会静默无效化，导致这里永远无法推进。
+     */
+    fun loadAll(
+        onProgress: (Int) -> Unit = {},
+        shouldContinue: () -> Boolean = { true },
+        onDone: () -> Unit
+    ) {
+        if (!shouldContinue()) {
+            Utils.log("loadAll: cancelled before start")
+            return
+        }
+        val before = msgList.value.size
+        var settled = false
+        msgList.observeOnce {
+            if (settled) return@observeOnce
+            settled = true
+            ThreadManager.runOnUiThread({
+                if (!shouldContinue()) {
+                    Utils.log("loadAll: cancelled, stopping")
+                    return@runOnUiThread
+                }
+                if (msgList.value.size <= before) {
+                    Utils.log("loadAll: reached top of history, total=${msgList.value.size}")
+                    onDone()
+                } else {
+                    onProgress(msgList.value.size)
+                    loadAll(onProgress, shouldContinue, onDone)
+                }
+            })
+        }
+        ThreadManager.runOnUiThread({
+            if (settled) return@runOnUiThread
+            settled = true
+            Utils.log("loadAll: timed out waiting for more msgs, total=${msgList.value.size}")
+            if (shouldContinue()) onDone()
+        }, 5000L)
+        isLoadingMsg = false // 清除上一次中断加载残留的守卫
+        loadMoreMsg()
+    }
+
     fun findMsg(
         seq: Long,
         result: (WatchAIOMsgItem?) -> Unit,
         repeatCount: Int = 1000
     ) {
         val msg = msgList.value.find { it.d.msgSeq == seq }
-        if (msg == null) {
-            if (repeatCount > 0) {
-                msgList.observeOnce {
-                    findMsg(seq, result, repeatCount - 1)
-                }
-                loadMoreMsg()
-            } else result(null)
-        } else {
+        if (msg != null) {
             result(msg)
+            return
         }
+        if (repeatCount <= 0) {
+            Utils.log("findMsg: give up (repeat exhausted) seq=$seq")
+            result(null)
+            return
+        }
+        // 加载更老的消息后重试。两种停止条件，避免无限挂起：
+        // 1) 一次加载后列表不再增长 -> 已到达历史顶部；
+        // 2) 超时仍无更新到达 -> 加载卡住 / 没有可加载内容。
+        val sizeBefore = msgList.value.size
+        var settled = false
+        msgList.observeOnce {
+            if (settled) return@observeOnce
+            settled = true
+            if (msgList.value.size <= sizeBefore) {
+                // 到达历史顶部仍未找到目标。
+                Utils.log("findMsg: reached top of history, seq=$seq not found")
+                result(null)
+            } else {
+                findMsg(seq, result, repeatCount - 1)
+            }
+        }
+        ThreadManager.runOnUiThread({
+            if (settled) return@runOnUiThread
+            settled = true
+            Utils.log("findMsg: timed out waiting for more msgs, seq=$seq")
+            result(null)
+        }, 3000L)
+        loadMoreMsg()
     }
 
     @Mixin

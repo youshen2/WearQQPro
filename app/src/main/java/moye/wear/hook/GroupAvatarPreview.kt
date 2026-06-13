@@ -14,6 +14,8 @@ import momoi.mod.qqpro.util.runOnUi
 class GroupAvatarPreview : SettingFrame() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        // 在设置页插入“搜索聊天记录”入口（群聊与单聊都会显示）。
+        addChatSearchEntry(this)
         val args = arguments ?: return
         val peerId = args.getString("key_bundle_peer_id")
         val chatType = args.getInt("key_bundle_chat_type")
