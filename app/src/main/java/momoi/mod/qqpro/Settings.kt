@@ -13,6 +13,7 @@ object Settings {
     val swapCenterKeyboard = BooleanPref("swapCenterKeyboard", false)
     val hideVoiceButton = BooleanPref("hideVoiceButton", false)
     val enableExtraMenu = BooleanPref("enableExtraMenu", false)
+    val enableAntiDetection = BooleanPref("enableAntiDetection", true)
 
     // 识别没有 http(s):// 前缀的裸链接（如 example.com/path）
     val wideUrlMatch = BooleanPref("wideUrlMatch", true)

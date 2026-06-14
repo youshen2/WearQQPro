@@ -88,6 +88,11 @@ class 设置页 : SettingsActivity() {
             add<View>()
                 .height(6.dp)
             sectionTitle("WearQQ Pro设置")
+            switch(
+                "反检测",
+                "隐藏 root、调试、模拟器、VPN/代理 等环境判定",
+                Settings.enableAntiDetection
+            )
             actionEntry(
                 "长按菜单排序",
                 "拖拽调整聊天气泡长按菜单项顺序"
