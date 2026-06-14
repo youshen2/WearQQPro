@@ -18,7 +18,7 @@ object DisplayConfig {
             appendLine("|huanli233|")
             appendLine()
             appendLine("交流群：757440701")
-            appendLine("2026/06/13")
+            appendLine("2026/06/14")
             appendLine()
             appendLine("仅供学习参考使用，请于24小时内删除")
             appendLine()

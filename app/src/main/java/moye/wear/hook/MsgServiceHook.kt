@@ -6,7 +6,6 @@ import com.tencent.qqnt.kernel.nativeinterface.MsgElement
 import com.tencent.qqnt.msg.api.impl.MsgServiceImpl
 import momoi.anno.mixin.Mixin
 import moye.wear.span.ExtraSpanHelper
-import moye.wearqq.IMEOperation
 
 @Mixin
 class MsgServiceHook : MsgServiceImpl() {
@@ -18,9 +17,7 @@ class MsgServiceHook : MsgServiceImpl() {
         callback: IOperateCallback?
     ) {
         ExtraSpanHelper.parseTextElements(elements)
-        elements.addAll(IMEOperation.extraMsg)
-        IMEOperation.INSTANCE.clearExtra()
-        IMEOperation.extraMsg.clear()
-        super.sendMsg_old(contact, msgId, elements, callback)
+        // 回复等未内联到输入框的附加元素仍交给基座 sendMsg 处理，避免丢失 ReplyElement。
+        super.sendMsg(contact, msgId, elements, callback)
     }
 }
