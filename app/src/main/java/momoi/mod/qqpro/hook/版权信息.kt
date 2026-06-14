@@ -9,6 +9,7 @@ import android.widget.TextView
 import com.tencent.qqnt.watch.selftab.ui.SelfFragment
 import momoi.anno.mixin.Mixin
 import moye.wear.DisplayConfig
+import moye.wear.hook.SelfUpdateLogEntry
 
 @Mixin
 class 版权信息 : SelfFragment() {
@@ -21,6 +22,7 @@ class 版权信息 : SelfFragment() {
         val result = super.Y(inflater, container, savedInstanceState)
         val tv = result.findViewById<TextView>(2114521808)
         tv.text = DisplayConfig.selfFragmentText
+        SelfUpdateLogEntry.install(this, result)
         return result
     }
 }
