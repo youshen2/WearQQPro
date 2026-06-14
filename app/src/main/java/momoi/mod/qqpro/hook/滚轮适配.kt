@@ -1,6 +1,7 @@
 package momoi.mod.qqpro.hook
 
 import android.content.Context
+import android.os.Looper
 import android.content.res.Resources
 import android.view.MotionEvent
 import android.view.View
@@ -12,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.tencent.qqlive.module.videoreport.inject.dialog.ReportDialog
 import com.tencent.qqnt.watch.mainframe.MainActivity
 import com.tencent.richframework.widget.matrix.RFWMatrixImageView
+import me.jessyan.autosize.AutoSizeCompat
 import momoi.anno.mixin.Mixin
 import momoi.mod.qqpro.Settings
 import momoi.mod.qqpro.asGroup
@@ -59,6 +61,25 @@ class 滚轮适配配(context: Context) : ReportDialog(context) {
 class 滚轮适配 : MainActivity() {
     private var targetView: View? = null
     private var action: (Any.(Float)->Unit)? = null
+
+    // 设置页或系统选择器返回后会把共享密度重置回系统值，这里每次取资源都重新套用当前缩放。
+    override fun getResources(): Resources {
+        val res = super.getResources()
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            runCatching { AutoSizeCompat.autoConvertDensityOfGlobal(res) }
+        }
+        return res
+    }
+
+    // 返回聊天页后主动请求重排，让旧密度下测量过的视图按新缩放重新布局。
+    override fun onResume() {
+        super.onResume()
+        runCatching {
+            AutoSizeCompat.autoConvertDensityOfGlobal(resources)
+            window?.decorView?.requestLayout()
+        }
+    }
+
     override fun dispatchGenericMotionEvent(ev: MotionEvent): Boolean {
         if (targetView?.isInCenter() != true) {
             targetView = findTarget(window.decorView)

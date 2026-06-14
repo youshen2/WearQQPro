@@ -59,7 +59,7 @@ class 设置页 : SettingsActivity() {
             sectionTitle("QQPro设置")
             floatInput(
                 "缩放倍数",
-                "重启后生效",
+                "返回聊天页即时生效",
                 Settings.scale
             )
             floatInput(
