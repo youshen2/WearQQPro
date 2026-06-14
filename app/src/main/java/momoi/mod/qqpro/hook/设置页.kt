@@ -138,6 +138,11 @@ class 设置页 : SettingsActivity() {
                 "群聊头像相对昵称文字的倍数，默认 2.4",
                 Settings.avatarSizeScale
             )
+            floatInput(
+                "图片最大高度",
+                "聊天图片最大显示高度(占屏幕高度比例)，默认 0.5",
+                Settings.picMaxHeightRatio
+            )
             switch(
                 "合并连续消息头",
                 "同一人连续发言时只在第一条显示头像和昵称",

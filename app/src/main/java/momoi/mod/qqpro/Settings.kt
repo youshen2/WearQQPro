@@ -27,6 +27,7 @@ object Settings {
     val avatarSizeScale = FloatPref("avatarSizeScale", 2.4f)
     // 同一人连续发言时，只在第一条显示头像/昵称/等级，其余合并（默认关闭）
     val hideRepeatedSender = BooleanPref("hideRepeatedSender", false)
+    val picMaxHeightRatio = FloatPref("picMaxHeightRatio", 0.5f)
 
     private val moye = Utils.application.getSharedPreferences("wearqq", 0)
     val text get() = moye.getString("voice_btn_text", "")?.let {
