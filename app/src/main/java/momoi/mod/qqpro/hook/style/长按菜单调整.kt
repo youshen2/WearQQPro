@@ -25,7 +25,9 @@ import momoi.mod.qqpro.hook.action.CurrentContact
 import momoi.mod.qqpro.hook.action.CurrentGroupMembers
 import momoi.mod.qqpro.hook.action.SelfContact
 import momoi.mod.qqpro.hook.action.isGroup
+import momoi.mod.qqpro.hook.aio_cell.forwardMsgRecord
 import momoi.mod.qqpro.hook.aio_cell.forwardText
+import momoi.mod.qqpro.hook.aio_cell.isForwardableMsgRecord
 import momoi.mod.qqpro.hook.view.PartialCopyFragment
 import momoi.mod.qqpro.lib.FILL
 import momoi.mod.qqpro.lib.LinearScope
@@ -101,15 +103,27 @@ private fun process(
         ?.mapNotNull { it.textElement?.content }
         ?.joinToString("")
         ?.takeIf { it.isNotEmpty() }
-    // 纯文本消息没有原生「转发」入口，这里手动注入一个转发按钮。
-    if (copyText != null) {
+    val forwardable = msg?.let { isForwardableMsgRecord(it) } == true
+    val nativeForwardLabel = listOf("分享", "转发").firstOrNull { items.containsKey(it) }
+    if (forwardable && nativeForwardLabel != null) {
+        items[nativeForwardLabel]?.setOnClickListener {
+            linear.forwardMsgRecord(msg!!)
+            dismiss()
+        }
+    }
+    if (forwardable && nativeForwardLabel == null) {
+        items["转发"] = createNativeMenuItem(linear, "转发") {
+            linear.forwardMsgRecord(msg!!)
+            dismiss()
+        }
+    }
+    if (!forwardable && copyText != null) {
         items["转发"] = createNativeMenuItem(linear, "转发") {
             linear.forwardText(copyText)
             dismiss()
         }
     }
     if (copyText != null && fm != null) {
-        // 原生复制会整条复制，这里补一个可自由选择片段的入口。
         items["自由复制"] = createNativeMenuItem(linear, "自由复制") {
             runCatching {
                 PartialCopyFragment(copyText).show(fm, "qqpro_partial_copy")

@@ -72,6 +72,8 @@ import momoi.mod.qqpro.util.runOnUi
 import moye.wear.lib.SwipeBackLayout
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 class BigImageFragment(private val msgId: Long, private val pic: PicElement) : MyDialogFragment() {
     override fun onCreateView(
@@ -206,12 +208,6 @@ private fun doAddFavEmoji(context: Context, file: File) {
     })
 }
 
-/**
- * 打开 QQ 的好友选择器，把构建好的消息元素转发到所选的会话中。
- * 与「复读」(RepeatMsg) 不同，这里是真正转发到其它会话，而不是在当前会话重发。
- * 混淆字段说明：FriendSelectData.b = uid，FriendSelectData.e = 是否群聊。
- * 0x7e0805cd = R.drawable.icon_share。
- */
 private fun View.forwardToFriends(title: String = "转发", buildElements: () -> ArrayList<MsgElement>) {
     val navFragment = WatchPicElementExtKt.W(this)?.let { WatchPicElementExtKt.Y(it) } ?: return
     val app = MobileQQ.getMobileQQ().peekAppRuntime() ?: return
@@ -247,12 +243,10 @@ private fun View.forwardToFriends(title: String = "转发", buildElements: () ->
     }
 }
 
-/** 把一段文本转发给所选的好友/群聊。 */
 fun View.forwardText(text: CharSequence) = forwardToFriends {
     ImeTextUtil.a.b(text.toString())
 }
 
-/** 把图片转发给所选的好友/群聊（转发）。 */
 private fun View.sharePic(context: Context, pic: PicElement) {
     val path = picLocalPath(context, pic) ?: run {
         Utils.log("sharePic: no local path for ${pic.md5HexStr}")
@@ -261,6 +255,93 @@ private fun View.sharePic(context: Context, pic: PicElement) {
     forwardToFriends {
         arrayListOf(QRoute.api(IMsgApi::class.java).createPicElement(path, 0))
     }
+}
+
+fun isForwardableMsgRecord(msg: MsgRecord): Boolean {
+    return msg.elements?.any {
+        it.faceElement != null ||
+                it.marketFaceElement != null ||
+                it.videoElement != null ||
+                it.pttElement != null ||
+                it.picElement != null ||
+                it.giphyElement != null ||
+                it.faceBubbleElement != null
+    } == true
+}
+
+fun View.forwardMsgRecord(msg: MsgRecord, title: String = "转发") {
+    val navFragment = WatchPicElementExtKt.W(this)?.let { WatchPicElementExtKt.Y(it) } ?: return
+    val app = MobileQQ.getMobileQQ().peekAppRuntime() ?: return
+    val contactService =
+        app.getRuntimeService(IContactRuntimeService::class.java, "") as? IContactRuntimeService
+            ?: return
+    contactService.startFriendSelect(
+        navFragment,
+        emptyList(),
+        arrayListOf(app.currentUid),
+        title,
+        0x7e0805cd,
+        1,
+        10,
+        null,
+        false,
+        true
+    ) { _, friends: List<FriendSelectData> ->
+        if (friends.isNotEmpty()) {
+            val original = ArrayList(msg.elements ?: emptyList())
+            Thread {
+                val elements = rebuildForForward(original)
+                friends.forEach { friend ->
+                    val target = Contact(if (friend.e) 2 else 1, friend.b, "")
+                    MsgUtil.msgService.sendMsg(target, 0L, elements, IOperateCallback { code, errMsg ->
+                        if (code != 0) {
+                            Utils.log("forwardMsgRecord failed code=$code msg=$errMsg")
+                        }
+                    })
+                }
+            }.start()
+        }
+    }
+}
+
+private fun rebuildForForward(elements: List<MsgElement>): ArrayList<MsgElement> {
+    val out = ArrayList<MsgElement>(elements.size)
+    elements.forEach { ele ->
+        val pic = ele.picElement
+        if (pic == null) {
+            out.add(ele)
+            return@forEach
+        }
+        val url = runCatching { pic.getImageUrl() }.getOrNull()
+        if (url.isNullOrEmpty()) {
+            Utils.log("forwardMsgRecord: pic url empty")
+            out.add(ele)
+            return@forEach
+        }
+        val file = Utils.application.externalCacheDir!!
+            .child("forward_${System.currentTimeMillis()}_${pic.md5HexStr}.jpg")
+        val latch = CountDownLatch(1)
+        var ok = false
+        download(url, file) {
+            ok = it
+            latch.countDown()
+        }
+        latch.await(70, TimeUnit.SECONDS)
+        if (ok && file.exists() && file.length() > 0L) {
+            runCatching {
+                QRoute.api(IMsgApi::class.java).createPicElement(file.path, 0)
+            }.onSuccess {
+                out.add(it)
+            }.onFailure {
+                Utils.log("forwardMsgRecord: rebuild pic failed: $it")
+                out.add(ele)
+            }
+        } else {
+            Utils.log("forwardMsgRecord: download pic failed")
+            out.add(ele)
+        }
+    }
+    return out
 }
 
 private fun repeatText(text: CharSequence) {

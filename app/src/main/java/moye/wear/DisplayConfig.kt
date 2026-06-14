@@ -27,6 +27,7 @@ object DisplayConfig {
     val updateLogText: String
         get() = buildString {
             appendLine("V2.1：")
+            appendLine("支持了更多消息类型的分享")
             appendLine("修复了无法回复消息的问题")
             appendLine("修复了长按菜单排序调整对话框没有全屏的问题")
             appendLine("修复了长按菜单中的UI样式不统一的问题")
