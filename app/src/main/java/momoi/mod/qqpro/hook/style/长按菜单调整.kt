@@ -9,6 +9,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.view.forEach
+import androidx.fragment.app.FragmentManager
 import com.tencent.qqnt.kernel.nativeinterface.MemberRole
 import com.tencent.qqnt.kernel.nativeinterface.MsgRecord
 import com.tencent.qqnt.msg.KernelServiceUtil
@@ -26,6 +27,7 @@ import momoi.mod.qqpro.hook.action.CurrentGroupMembers
 import momoi.mod.qqpro.hook.action.SelfContact
 import momoi.mod.qqpro.hook.action.isGroup
 import momoi.mod.qqpro.hook.aio_cell.forwardText
+import momoi.mod.qqpro.hook.view.PartialCopyFragment
 import momoi.mod.qqpro.lib.FILL
 import momoi.mod.qqpro.lib.LinearScope
 import momoi.mod.qqpro.lib.background
@@ -42,24 +44,38 @@ import momoi.mod.qqpro.lib.textSize
 import momoi.mod.qqpro.lib.vh
 import momoi.mod.qqpro.lib.width
 import momoi.mod.qqpro.util.Utils
+import moye.wear.hook.LongPressMenuOrderManager
 
-val menuSort = arrayOf(
-    "回复",
-    "@Ta",
-    "复制文本",
-    "复读文本",
-    "去聊天",
-    "加好友",
-    "删除",
-)
+private fun createQuickButton(
+    parent: LinearLayout,
+    text: String,
+    onClick: () -> Unit,
+): View {
+    return create<TextView>(parent.context)
+        .width(FILL)
+        .gravity(Gravity.CENTER)
+        .padding(6.dp)
+        .text(text)
+        .textSize(16f)
+        .background(roundCornerDrawable(
+            color = Colors.replyBackground,
+            radius = 16.dpf
+        ))
+        .clickable(onClick)
+}
 
-private fun process(group: ViewGroup, msg: MsgRecord?, dismiss: () -> Unit) {
+private fun process(
+    group: ViewGroup,
+    msg: MsgRecord?,
+    fm: FragmentManager?,
+    dismiss: () -> Unit
+) {
     group.removeViewAt(0)
     val linear = group.getChildAt(0).asGroup()
         .getChildAt(0).asGroup()
         .getChildAt(0) as LinearLayout
     linear.background(0x44_000000)
-    val items = mutableMapOf<String, View>()
+    val items = linkedMapOf<String, View>()
     linear.forEach { item ->
         item.asGroup().forEachAll {
             if (it is AppCompatTextView) {
@@ -67,76 +83,61 @@ private fun process(group: ViewGroup, msg: MsgRecord?, dismiss: () -> Unit) {
             }
         }
     }
-    linear.removeAllViews()
-    LinearScope(linear).add<View>()
-        .width(FILL)
-        .height(if (Utils.isRoundScreen) 0.16f.vh else 0)
-    if (Utils.isRoundScreen) {
-        linear.paddingHorizontal(0.1f.vh)
-    }
-    // 纯文本消息没有原生「转发」入口，这里手动注入一个转发按钮。
-    if (msg != null) {
-        val text = msg.elements
-            ?.filter { it.elementType == ElementType.TEXT }
-            ?.mapNotNull { it.textElement?.content }
-            ?.joinToString("")
-            ?.takeIf { it.isNotEmpty() }
-        if (text != null) {
-            linear.addView(
-                create<TextView>(linear.context)
-                    .width(FILL)
-                    .gravity(Gravity.CENTER)
-                    .padding(6.dp)
-                    .text("转发")
-                    .textSize(16f)
-                    .background(roundCornerDrawable(
-                        color = Colors.replyBackground,
-                        radius = 16.dpf
-                    ))
-                    .clickable {
-                        linear.forwardText(text)
-                        dismiss()
-                    }
-            )
+
+    fun renderItems() {
+        LongPressMenuOrderManager.rememberLabels(items.keys)
+        linear.removeAllViews()
+        LinearScope(linear).add<View>()
+            .width(FILL)
+            .height(if (Utils.isRoundScreen) 0.16f.vh else 0)
+        if (Utils.isRoundScreen) {
+            linear.paddingHorizontal(0.1f.vh)
+        }
+        LongPressMenuOrderManager.sortLabels(items.keys).forEach { label ->
+            items[label]?.let { linear.addView(it) }
+        }
+        if (Utils.isRoundScreen) {
+            LinearScope(linear).add<View>()
+                .width(FILL)
+                .height(0.16f.vh)
         }
     }
+
+    val copyText = msg?.elements
+        ?.filter { it.elementType == ElementType.TEXT }
+        ?.mapNotNull { it.textElement?.content }
+        ?.joinToString("")
+        ?.takeIf { it.isNotEmpty() }
+    // 纯文本消息没有原生「转发」入口，这里手动注入一个转发按钮。
+    if (copyText != null) {
+        items["转发"] = createQuickButton(linear, "转发") {
+            linear.forwardText(copyText)
+            dismiss()
+        }
+    }
+    if (copyText != null && fm != null) {
+        // 原生复制会整条复制，这里补一个可自由选择片段的入口。
+        items["自由复制"] = createQuickButton(linear, "自由复制") {
+            runCatching {
+                PartialCopyFragment(copyText).show(fm, "qqpro_partial_copy")
+            }.onFailure {
+                Utils.log("partial copy open failed: $it")
+            }
+            dismiss()
+        }
+    }
+    renderItems()
     if (msg != null && CurrentContact.isGroup) {
         CurrentGroupMembers.get(SelfContact.peerUid) {
             if (it.role == MemberRole.OWNER || it.role == MemberRole.ADMIN) {
                 linear.post {
-                    linear.addView(
-                        create<TextView>(linear.context)
-                            .width(FILL)
-                            .gravity(Gravity.CENTER)
-                            .padding(6.dp)
-                            .text("撤回")
-                            .textSize(16f)
-                            .background(roundCornerDrawable(
-                                color = Colors.replyBackground,
-                                radius = 16.dpf
-                            ))
-                            .clickable {
-                                KernelServiceUtil.c()?.recallMsg(CurrentContact, msg.msgId, null)
-                            }
-                    )
+                    items["撤回"] = createQuickButton(linear, "撤回") {
+                        KernelServiceUtil.c()?.recallMsg(CurrentContact, msg.msgId, null)
+                    }
+                    renderItems()
                 }
             }
         }
-    }
-    menuSort.forEach {
-        items[it]?.let { item ->
-            linear.addView(item)
-        }
-    }
-    items.values.forEach {
-        if (it.parent == null) {
-            linear.addView(it, 1)
-        }
-    }
-    if (Utils.isRoundScreen) {
-        LinearScope(linear).add<View>()
-            .width(FILL)
-            .height(0.16f.vh)
     }
 }
 
@@ -154,9 +155,10 @@ class 长按菜单调整(p0: (MenuItemFactory.ItemEnum) -> Unit, p1: String?) :
             val cell = field.get(this.b) as WatchAIOGroupWidgetItemCell<*, *>
             cell.f()!!.d
         }.getOrNull()
+        val fm = runCatching { parentFragmentManager }.getOrNull()
         return super.onCreateView(inflater, container, savedInstanceState).apply {
             this.asGroup().getChildAt(0).asGroup().let { group ->
-                process(group, msg) { dismiss() }
+                process(group, msg, fm) { dismiss() }
             }
         }
     }

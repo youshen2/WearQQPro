@@ -20,6 +20,7 @@ import momoi.mod.qqpro.lib.GroupScope
 import momoi.mod.qqpro.lib.LinearScope
 import momoi.mod.qqpro.lib.WRAP
 import momoi.mod.qqpro.lib.background
+import momoi.mod.qqpro.lib.clickable
 import momoi.mod.qqpro.lib.content
 import momoi.mod.qqpro.lib.dp
 import momoi.mod.qqpro.lib.dpf
@@ -33,6 +34,8 @@ import momoi.mod.qqpro.lib.textColor
 import momoi.mod.qqpro.lib.textSize
 import momoi.mod.qqpro.lib.vertical
 import momoi.mod.qqpro.lib.width
+import momoi.mod.qqpro.util.Utils
+import moye.wear.hook.LongPressMenuOrderDialog
 import moye.wearqq.SettingsActivity
 
 @Mixin
@@ -85,6 +88,16 @@ class 设置页 : SettingsActivity() {
             add<View>()
                 .height(6.dp)
             sectionTitle("WearQQ Pro设置")
+            actionEntry(
+                "长按菜单排序",
+                "拖拽调整聊天气泡长按菜单项顺序"
+            ) {
+                runCatching {
+                    LongPressMenuOrderDialog.show(this@设置页)
+                }.onFailure {
+                    Utils.toast(this@设置页, "打开排序面板失败")
+                }
+            }
             switch(
                 "昵称称号双行",
                 "开启后群聊昵称与称号分两行显示，关闭时即使显示头像也保持单行",
@@ -188,12 +201,29 @@ class 设置页 : SettingsActivity() {
         }
     }
 
+    private fun GroupScope.actionEntry(
+        title: String,
+        desc: String = "",
+        onClick: () -> Unit
+    ) {
+        val row = baseEntry(title, desc) {
+            add<TextView>()
+                .text("进入")
+                .textSize(12f)
+                .textColor(0xFF_FFFFFF)
+                .padding(left = 10.dp, top = 5.dp, right = 10.dp, bottom = 5.dp)
+                .background(roundCornerDrawable(0x44_000000, 8.dpf))
+                .clickable(onClick)
+        }
+        row.clickable(onClick)
+    }
+
     private fun GroupScope.baseEntry(
         title: String,
         desc: String = "",
         content: LinearScope.() -> Unit
-    ) {
-        add<LinearLayout>()
+    ): LinearLayout {
+        return add<LinearLayout>()
             .width(FILL)
             .background(roundCornerDrawable(0x99_3D3D3D.toInt(), 10.dpf))
             .margin(left = 4.dp, top = 0, right = 4.dp, bottom = 8.dp)
