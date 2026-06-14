@@ -86,6 +86,11 @@ class 设置页 : SettingsActivity() {
                 .height(6.dp)
             sectionTitle("WearQQ Pro设置")
             switch(
+                "昵称称号双行",
+                "开启后群聊昵称与称号分两行显示，关闭时即使显示头像也保持单行",
+                Settings.nickTitleTwoLine
+            )
+            switch(
                 "启用附加菜单",
                 "开启后使用加号按钮代替第二页",
                 Settings.enableExtraMenu

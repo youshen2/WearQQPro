@@ -28,12 +28,11 @@ import java.util.WeakHashMap
 import kotlin.concurrent.thread
 
 /**
- * 群聊昵称左侧显示发送者头像。
+ * 群聊昵称区域样式调整。
  *
- * 由 AIOCell 的群成员回调驱动：拿到 [MemberInfo] 后，开关开启且不是自己发的消息时，
- * 把昵称 TextView 改成「等级标签 + 昵称」两行，并在左侧挂上一张圆形头像（作为
- * compound drawable，因为 cell 控件本身没有独立的头像位）。开关关闭或自己发的消息
- * 则回退到原本的单行内联样式。
+ * 由 AIOCell 的群成员回调驱动：拿到 [MemberInfo] 后，按开关决定昵称 TextView
+ * 使用单行还是「等级标签 + 昵称」两行样式；头像开关只控制左侧是否挂圆形头像
+ * compound drawable，不再隐式决定单双行。自己发的消息统一保持原本的单行样式。
  *
  * 头像从 QQ 头像 CDN 按 uin 拉取，复用项目里已有的 [download]。所有缓存读写都放在
  * UI 线程上，避免列表快速滚动时并发改 Map 引发的竞态；解码放在后台线程。
@@ -57,19 +56,24 @@ object GroupAvatarHook {
     fun update(widget: AIOCellGroupWidget, member: MemberInfo) {
         val nick = widget.getNickWidget<TextView>() ?: return
         val isSelf = member.uid == SelfContact.peerUid
+        val showTwoLine = Settings.nickTitleTwoLine.value && !isSelf
+        val showAvatar = Settings.showGroupAvatar.value && !isSelf
 
-        if (!Settings.showGroupAvatar.value || isSelf) {
-            // 单行内联样式，并清掉可能残留的头像
+        if (!showTwoLine) {
+            // 单行内联样式
             nick.maxLines = 1
             nick.text = member.toDisplay()
+        } else {
+            // 两行样式：等级标签在上，昵称在下
+            nick.maxLines = 2
+            nick.text = member.toDisplayTwoLine()
+        }
+
+        if (!showAvatar) {
             clearAvatar(nick)
             boundUin.remove(nick)
             return
         }
-
-        // 两行样式：等级标签在上，昵称在下，左侧挂头像
-        nick.maxLines = 2
-        nick.text = member.toDisplayTwoLine()
 
         val uin = member.uin
         boundUin[nick] = uin

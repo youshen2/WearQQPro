@@ -18,6 +18,8 @@ object Settings {
     val wideUrlMatch = BooleanPref("wideUrlMatch", true)
     // 在聊天消息下方展示链接预览卡片（会向链接所在站点发起网络请求，默认关闭）
     val enableLinkPreview = BooleanPref("enableLinkPreview", false)
+    // 群聊昵称与称号改为双行显示，关闭时即使开启头像也保持单行
+    val nickTitleTwoLine = BooleanPref("nickTitleTwoLine", false)
     // 群聊昵称左侧显示发送者头像（会从 QQ 头像 CDN 拉取图片，默认关闭）
     val showGroupAvatar = BooleanPref("showGroupAvatar", false)
     // 群聊头像大小，相对昵称文字的倍数，默认 2.4 倍
