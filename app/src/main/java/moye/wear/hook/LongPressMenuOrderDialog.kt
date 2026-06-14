@@ -10,6 +10,8 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -122,12 +124,31 @@ class LongPressMenuOrderDialog(context: Context) : ReportDialog(context) {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
         setContentView(createContentView())
+        applyFullscreenWindow()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        applyFullscreenWindow()
+    }
+
+    private fun applyFullscreenWindow() {
         window?.apply {
-            setBackgroundDrawable(ColorDrawable(0))
+            setBackgroundDrawable(ColorDrawable(0xF0_121212.toInt()))
             decorView.setPadding(0, 0, 0, 0)
             setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            attributes = attributes.apply {
+                width = WindowManager.LayoutParams.MATCH_PARENT
+                height = WindowManager.LayoutParams.MATCH_PARENT
+                gravity = Gravity.CENTER
+                horizontalMargin = 0f
+                verticalMargin = 0f
+            }
+            addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN)
+            addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         }
     }
 
@@ -137,7 +158,7 @@ class LongPressMenuOrderDialog(context: Context) : ReportDialog(context) {
         val root = LinearLayout(context).vertical().apply {
             layoutParams = ViewGroup.LayoutParams(FILL, FILL)
             setBackgroundColor(0xF0_121212.toInt())
-            setPadding(edgePadding, compactGap, edgePadding, compactGap)
+            setPadding(edgePadding, 0, edgePadding, compactGap)
         }
         root.content {
             add<TextView>()
@@ -146,7 +167,7 @@ class LongPressMenuOrderDialog(context: Context) : ReportDialog(context) {
                 .textColor(0xFF_FFFFFF.toInt())
                 .gravity(Gravity.CENTER)
                 .width(FILL)
-                .padding(left = 8.dp, top = 8.dp, right = 8.dp, bottom = 2.dp)
+                .padding(left = 8.dp, top = 2.dp, right = 8.dp, bottom = 2.dp)
             add<TextView>()
                 .text("按住右侧手柄上下拖动，松手后自动保存。")
                 .textSize(10f)

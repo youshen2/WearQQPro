@@ -1,14 +1,15 @@
 package momoi.mod.qqpro.hook.style
 
 import android.os.Bundle
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.view.forEach
+import androidx.core.view.isVisible
 import androidx.fragment.app.FragmentManager
 import com.tencent.qqnt.kernel.nativeinterface.MemberRole
 import com.tencent.qqnt.kernel.nativeinterface.MsgRecord
@@ -17,9 +18,7 @@ import com.tencent.watch.aio_impl.ui.cell.base.WatchAIOGroupWidgetItemCell
 import com.tencent.watch.aio_impl.ui.menu.AIOLongClickMenuFragment
 import com.tencent.watch.aio_impl.ui.menu.MenuItemFactory
 import momoi.anno.mixin.Mixin
-import momoi.mod.qqpro.Colors
 import momoi.mod.qqpro.asGroup
-import momoi.mod.qqpro.drawable.roundCornerDrawable
 import momoi.mod.qqpro.enums.ElementType
 import momoi.mod.qqpro.forEachAll
 import momoi.mod.qqpro.hook.action.CurrentContact
@@ -31,37 +30,31 @@ import momoi.mod.qqpro.hook.view.PartialCopyFragment
 import momoi.mod.qqpro.lib.FILL
 import momoi.mod.qqpro.lib.LinearScope
 import momoi.mod.qqpro.lib.background
-import momoi.mod.qqpro.lib.clickable
-import momoi.mod.qqpro.lib.create
 import momoi.mod.qqpro.lib.dp
-import momoi.mod.qqpro.lib.dpf
-import momoi.mod.qqpro.lib.gravity
 import momoi.mod.qqpro.lib.height
 import momoi.mod.qqpro.lib.padding
 import momoi.mod.qqpro.lib.paddingHorizontal
-import momoi.mod.qqpro.lib.text
-import momoi.mod.qqpro.lib.textSize
 import momoi.mod.qqpro.lib.vh
 import momoi.mod.qqpro.lib.width
 import momoi.mod.qqpro.util.Utils
 import moye.wear.hook.LongPressMenuOrderManager
 
-private fun createQuickButton(
+private const val NATIVE_MENU_ITEM_LAYOUT = 2114715895
+private const val NATIVE_MENU_SWITCH_ID = 2114519474
+private const val NATIVE_MENU_TEXT_ID = 2114519756
+private const val NATIVE_MENU_ICON_ID = 2114520149
+
+private fun createNativeMenuItem(
     parent: LinearLayout,
     text: String,
     onClick: () -> Unit,
 ): View {
-    return create<TextView>(parent.context)
-        .width(FILL)
-        .gravity(Gravity.CENTER)
-        .padding(6.dp)
-        .text(text)
-        .textSize(16f)
-        .background(roundCornerDrawable(
-            color = Colors.replyBackground,
-            radius = 16.dpf
-        ))
-        .clickable(onClick)
+    val item = LayoutInflater.from(parent.context).inflate(NATIVE_MENU_ITEM_LAYOUT, parent, false)
+    item.findViewById<AppCompatTextView>(NATIVE_MENU_TEXT_ID)?.text = text
+    item.findViewById<ImageView>(NATIVE_MENU_ICON_ID)?.isVisible = false
+    item.findViewById<View>(NATIVE_MENU_SWITCH_ID)?.isVisible = false
+    item.setOnClickListener { onClick() }
+    return item
 }
 
 private fun process(
@@ -78,7 +71,7 @@ private fun process(
     val items = linkedMapOf<String, View>()
     linear.forEach { item ->
         item.asGroup().forEachAll {
-            if (it is AppCompatTextView) {
+            if (it is TextView) {
                 items[it.text.toString()] = item
             }
         }
@@ -110,14 +103,14 @@ private fun process(
         ?.takeIf { it.isNotEmpty() }
     // 纯文本消息没有原生「转发」入口，这里手动注入一个转发按钮。
     if (copyText != null) {
-        items["转发"] = createQuickButton(linear, "转发") {
+        items["转发"] = createNativeMenuItem(linear, "转发") {
             linear.forwardText(copyText)
             dismiss()
         }
     }
     if (copyText != null && fm != null) {
         // 原生复制会整条复制，这里补一个可自由选择片段的入口。
-        items["自由复制"] = createQuickButton(linear, "自由复制") {
+        items["自由复制"] = createNativeMenuItem(linear, "自由复制") {
             runCatching {
                 PartialCopyFragment(copyText).show(fm, "qqpro_partial_copy")
             }.onFailure {
@@ -131,7 +124,7 @@ private fun process(
         CurrentGroupMembers.get(SelfContact.peerUid) {
             if (it.role == MemberRole.OWNER || it.role == MemberRole.ADMIN) {
                 linear.post {
-                    items["撤回"] = createQuickButton(linear, "撤回") {
+                    items["撤回"] = createNativeMenuItem(linear, "撤回") {
                         KernelServiceUtil.c()?.recallMsg(CurrentContact, msg.msgId, null)
                     }
                     renderItems()

@@ -79,7 +79,7 @@ class 苦呀嘻嘻 : ProfileCardFragment() {
                                         val minutes = m.text.toString().toIntOrNull() ?: 0
                                         val seconds = (days * 24 + hours) * 60 + minutes * 60
                                         /*
-                                        QQNT.group.setMemberShutUp(
+                                        QQServices.group.setMemberShutUp(
                                             CurrentContact.peerUid.toLong(),
                                             arrayListOf(
                                                 GroupMemberShutUpInfo().apply {

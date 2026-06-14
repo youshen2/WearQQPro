@@ -2,7 +2,7 @@ package moye.wear
 
 object DisplayConfig {
     const val appName = "WearQQ Pro"
-    const val versionName = "2.0"
+    const val versionName = "2.1"
 
     val selfFragmentText: String
         get() = buildString {
@@ -26,6 +26,13 @@ object DisplayConfig {
 
     val updateLogText: String
         get() = buildString {
+            appendLine("V2.1：")
+            appendLine("修复了无法回复消息的问题")
+            appendLine("修复了长按菜单排序调整对话框没有全屏的问题")
+            appendLine("修复了长按菜单中的UI样式不统一的问题")
+            appendLine("回退了QQProV1.5.1中导致异常的头衔获取方式改动")
+            appendLine("---")
+            appendLine("V2.0：")
             appendLine("统一了设置页面的UI样式")
             appendLine("增加了反ROOT等检测功能")
             appendLine("增加了查找聊天记录")

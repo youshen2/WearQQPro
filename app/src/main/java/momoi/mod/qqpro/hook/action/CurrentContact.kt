@@ -8,27 +8,38 @@ import com.tencent.aio.base.chat.ChatPie
 import com.tencent.aio.main.fragment.ChatFragment
 import com.tencent.qqnt.kernel.nativeinterface.Contact
 import com.tencent.qqnt.kernel.nativeinterface.MemberInfo
+import com.tencent.qqnt.msg.KernelServiceUtil
 import momoi.anno.mixin.Mixin
-import momoi.mod.qqpro.QQNT
 import momoi.mod.qqpro.enums.ChatType
 
 val Contact.isGroup get() = this.chatType == ChatType.GROUP
 val CurrentContact = Contact(0, "", "")
 
-object CurrentGroupMembers {
-    var info: Map<String, MemberInfo>? = null
-    val callbacks = mutableListOf<()-> Unit>()
-    fun get(id: String, callback: (MemberInfo)-> Unit) {
+object CurrentMemberInfo {
+    val map = mutableMapOf<String, MemberInfo>()
+
+    fun get(uid: String, callback: (MemberInfo) -> Unit) {
         if (!CurrentContact.isGroup) {
             return
         }
-        if (info == null) {
-            callbacks.add {
-                info?.get(id)?.let { callback(it) }
-            }
-            return
+        map[uid]?.let {
+            callback(it)
+        } ?: KernelServiceUtil.b()?.getMemberInfoForMqq(
+            CurrentContact.peerUid.toLong(),
+            arrayListOf(uid),
+            false
+        ) { _, _, result ->
+            val info = result.infos.values.firstOrNull() ?: return@getMemberInfoForMqq
+            map[uid] = info
+            callback(info)
         }
-        info?.get(id)?.let { callback(it) }
+    }
+}
+
+object CurrentGroupMembers {
+    // 兼容后续调用点，实际行为回退到按需单查成员信息。
+    fun get(id: String, callback: (MemberInfo) -> Unit) {
+        CurrentMemberInfo.get(id, callback)
     }
 }
 
@@ -41,18 +52,10 @@ class Hook(p0: IAIOFactory) : ChatPie(p0) {
         isPreload: Boolean
     ): View {
         e?.b?.b?.let {
+            CurrentMemberInfo.map.clear()
             CurrentContact.chatType = it.b
             CurrentContact.peerUid = it.c
             CurrentContact.guildId = it.d
-            CurrentGroupMembers.info = null
-            CurrentGroupMembers.callbacks.clear()
-            if (it.b == ChatType.GROUP) {
-                QQNT.Group.getMemberList(CurrentContact.peerUid.toLong()) {
-                    CurrentGroupMembers.info = it.infos
-                    CurrentGroupMembers.callbacks.forEach { it() }
-                    CurrentGroupMembers.callbacks.clear()
-                }
-            }
         }
         return super.a(fragment, inflater, container, isPreload)
     }
