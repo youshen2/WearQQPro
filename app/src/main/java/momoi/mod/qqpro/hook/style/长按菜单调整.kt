@@ -46,14 +46,26 @@ private const val NATIVE_MENU_SWITCH_ID = 2114519474
 private const val NATIVE_MENU_TEXT_ID = 2114519756
 private const val NATIVE_MENU_ICON_ID = 2114520149
 
+private const val ICON_COPY = 2114454957
+private const val ICON_SHARE = 2114454989
+private const val ICON_REVOKE = 2114454918
+
 private fun createNativeMenuItem(
     parent: LinearLayout,
     text: String,
+    iconRes: Int = 0,
     onClick: () -> Unit,
 ): View {
     val item = LayoutInflater.from(parent.context).inflate(NATIVE_MENU_ITEM_LAYOUT, parent, false)
     item.findViewById<AppCompatTextView>(NATIVE_MENU_TEXT_ID)?.text = text
-    item.findViewById<ImageView>(NATIVE_MENU_ICON_ID)?.isVisible = false
+    item.findViewById<ImageView>(NATIVE_MENU_ICON_ID)?.let { iconView ->
+        if (iconRes != 0) {
+            iconView.setImageResource(iconRes)
+            iconView.isVisible = true
+        } else {
+            iconView.isVisible = false
+        }
+    }
     item.findViewById<View>(NATIVE_MENU_SWITCH_ID)?.isVisible = false
     item.setOnClickListener { onClick() }
     return item
@@ -112,19 +124,19 @@ private fun process(
         }
     }
     if (forwardable && nativeForwardLabel == null) {
-        items["转发"] = createNativeMenuItem(linear, "转发") {
+        items["转发"] = createNativeMenuItem(linear, "转发", ICON_SHARE) {
             linear.forwardMsgRecord(msg!!)
             dismiss()
         }
     }
     if (!forwardable && copyText != null) {
-        items["转发"] = createNativeMenuItem(linear, "转发") {
+        items["转发"] = createNativeMenuItem(linear, "转发", ICON_SHARE) {
             linear.forwardText(copyText)
             dismiss()
         }
     }
     if (copyText != null && fm != null) {
-        items["自由复制"] = createNativeMenuItem(linear, "自由复制") {
+        items["自由复制"] = createNativeMenuItem(linear, "自由复制", ICON_COPY) {
             runCatching {
                 PartialCopyFragment(copyText).show(fm, "qqpro_partial_copy")
             }.onFailure {
@@ -138,7 +150,7 @@ private fun process(
         CurrentGroupMembers.get(SelfContact.peerUid) {
             if (it.role == MemberRole.OWNER || it.role == MemberRole.ADMIN) {
                 linear.post {
-                    items["撤回"] = createNativeMenuItem(linear, "撤回") {
+                    items["撤回"] = createNativeMenuItem(linear, "撤回", ICON_REVOKE) {
                         KernelServiceUtil.c()?.recallMsg(CurrentContact, msg.msgId, null)
                     }
                     renderItems()
