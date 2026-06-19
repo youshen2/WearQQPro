@@ -11,6 +11,7 @@ object Settings {
     val enableSmoothScroll = BooleanPref("enableSmoothScroll", false)
     val encoderScrollSpeed = FloatPref("encoderScrollSpeed", 1.0f)
     val blockBack = BooleanPref("blockBack", false)
+    val disableSwipeBack = BooleanPref("disableSwipeBack", false)
     val swapCenterKeyboard = BooleanPref("swapCenterKeyboard", false)
     val hideVoiceButton = BooleanPref("hideVoiceButton", false)
     val enableExtraMenu = BooleanPref("enableExtraMenu", false)

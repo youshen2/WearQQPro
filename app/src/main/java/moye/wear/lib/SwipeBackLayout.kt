@@ -4,11 +4,14 @@ import android.content.Context
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import android.widget.FrameLayout
+import momoi.mod.qqpro.Settings
 import kotlin.math.abs
 
 class SwipeBackLayout(context: Context) : FrameLayout(context) {
 
     var onSwipeBack: (() -> Unit)? = null
+
+    var ignoreDisableSetting = false
 
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private var downX = 0f
@@ -16,6 +19,7 @@ class SwipeBackLayout(context: Context) : FrameLayout(context) {
     private var tracking = false
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        if (!ignoreDisableSetting && Settings.disableSwipeBack.value) return false
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 downX = ev.rawX
