@@ -17,7 +17,9 @@ import com.tencent.qqnt.watch.ui.componet.tablayout.CircleIndicator
 import com.tencent.watch.aio_impl.ui.WatchAIOFragment
 import com.tencent.watch.aio_impl.ui.frames.FrameAdapter
 import com.tencent.watch.aio_impl.ui.frames.MenuFrame
+import com.tencent.watch.aio_impl.ui.frames.MenuItem
 import momoi.mod.qqpro.drawable.roundCornerDrawable
+import momoi.mod.qqpro.hook.view.CallConfirmFragment
 import momoi.mod.qqpro.lib.dp
 import momoi.mod.qqpro.lib.dpf
 import momoi.mod.qqpro.Settings
@@ -166,7 +168,7 @@ object ExtraMenuOverlay {
         if (styleInstalled[recyclerView] != true) {
             recyclerView.addOnChildAttachStateChangeListener(object : RecyclerView.OnChildAttachStateChangeListener {
                 override fun onChildViewAttachedToWindow(view: View) {
-                    restyleMenuItem(view)
+                    restyleMenuItem(view, recyclerView)
                 }
 
                 override fun onChildViewDetachedFromWindow(view: View) = Unit
@@ -209,11 +211,11 @@ object ExtraMenuOverlay {
 
     private fun restyleVisibleMenuItems(recyclerView: RecyclerView) {
         for (index in 0 until recyclerView.childCount) {
-            restyleMenuItem(recyclerView.getChildAt(index))
+            restyleMenuItem(recyclerView.getChildAt(index), recyclerView)
         }
     }
 
-    private fun restyleMenuItem(view: View) {
+    private fun restyleMenuItem(view: View, recyclerView: RecyclerView) {
         val row = view as? LinearLayout ?: return
         val icon = row.getChildAt(0) as? ImageView
         val text = row.getChildAt(1) as? TextView ?: return
@@ -235,11 +237,32 @@ object ExtraMenuOverlay {
         text.setTextColor(0xFF_FFFFFF.toInt())
         text.background = null
         text.setPadding(0, 0, 0, 0)
-        row.setOnClickListener {
-            icon?.performClick()
+        val pos = recyclerView.getChildAdapterPosition(row)
+        val menuItem = recyclerView.adapter?.let { adapter ->
+            val field = adapter.javaClass.getDeclaredField("a")
+            field.isAccessible = true
+            (field.get(adapter) as? ArrayList<*>)?.getOrNull(pos) as? MenuItem
         }
-        text.setOnClickListener {
-            icon?.performClick()
+        val isCall = menuItem?.d() == 3 || menuItem?.d() == 4
+        if (isCall) {
+            val confirmClick = View.OnClickListener {
+                val fm = currentFragmentRef?.get()?.childFragmentManager ?: return@OnClickListener
+                val target = icon ?: return@OnClickListener
+                val label = text.text?.toString().orEmpty()
+                runCatching {
+                    CallConfirmFragment("确定要发起$label 吗？", target)
+                        .show(fm, "qqpro_call_confirm")
+                }
+            }
+            row.setOnClickListener(confirmClick)
+            text.setOnClickListener(confirmClick)
+        } else {
+            row.setOnClickListener {
+                icon?.performClick()
+            }
+            text.setOnClickListener {
+                icon?.performClick()
+            }
         }
     }
 
