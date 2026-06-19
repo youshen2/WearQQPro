@@ -5,14 +5,35 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import momoi.mod.qqpro.findMethod
+import java.lang.reflect.Constructor
+import java.lang.reflect.Method
+import java.util.concurrent.ConcurrentHashMap
+
+private val layoutParamsMethodCache = ConcurrentHashMap<Class<*>, Method>()
+private val viewConstructorCache = ConcurrentHashMap<Class<*>, Constructor<*>>()
+
+@PublishedApi
+internal fun defaultLayoutParamsFor(group: ViewGroup): ViewGroup.LayoutParams {
+    val method = layoutParamsMethodCache.getOrPut(group.javaClass) {
+        group.javaClass.findMethod("generateDefaultLayoutParams").apply { isAccessible = true }
+    }
+    return method.invoke(group) as ViewGroup.LayoutParams
+}
+
+@PublishedApi
+internal fun <T : View> instantiateView(clazz: Class<T>, context: Context): T {
+    val ctor = viewConstructorCache.getOrPut(clazz) {
+        clazz.getConstructor(Context::class.java)
+    }
+    @Suppress("UNCHECKED_CAST")
+    return ctor.newInstance(context) as T
+}
 
 open class GroupScope(val group: ViewGroup) {
     inline fun <reified T : View> create(): T {
         return create<T>(
             group.context,
-            group.javaClass.findMethod("generateDefaultLayoutParams").apply {
-                isAccessible = true
-            }.invoke(group) as ViewGroup.LayoutParams
+            defaultLayoutParamsFor(group)
         ).size(WRAP, WRAP)
     }
     inline fun <reified T : View> add(): T {
@@ -33,7 +54,7 @@ inline fun <reified T : View> create(
         WRAP_CONTENT
     )
 ): T {
-    val view = T::class.java.getConstructor(Context::class.java).newInstance(context) as T
+    val view = instantiateView(T::class.java, context)
     view.layoutParams = params
     return view
 }

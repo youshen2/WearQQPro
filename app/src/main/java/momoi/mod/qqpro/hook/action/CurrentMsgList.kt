@@ -23,8 +23,18 @@ object CurrentMsgList {
     var msgList = Observable(mutableListOf<WatchAIOMsgItem>())
         private set
 
+    private var indexCacheList: List<WatchAIOMsgItem>? = null
+    private var indexCache: java.util.IdentityHashMap<WatchAIOMsgItem, Int>? = null
+
     fun getMsgIndex(msg: WatchAIOMsgItem): Int {
-        return msgList.value.indexOf(msg)
+        val current = msgList.value
+        if (indexCacheList !== current || indexCache == null) {
+            val map = java.util.IdentityHashMap<WatchAIOMsgItem, Int>(current.size)
+            current.forEachIndexed { i, item -> map[item] = i }
+            indexCache = map
+            indexCacheList = current
+        }
+        return indexCache!![msg] ?: -1
     }
 
     private var isLoadingMsg = false
@@ -99,7 +109,7 @@ object CurrentMsgList {
             Utils.log("loadAll: timed out waiting for more msgs, total=${msgList.value.size}")
             if (shouldContinue()) onDone()
         }, 5000L)
-        isLoadingMsg = false // 清除上一次中断加载残留的守卫
+        isLoadingMsg = false
         loadMoreMsg()
     }
 
@@ -150,6 +160,11 @@ object CurrentMsgList {
             vb = this
             val msg = msgList.value
             val list = state as LinkedList<WatchAIOMsgItem>
+            // 预建 msgId -> 下标 映射，替换循环内的 O(n) indexOfLast，把整体合并从 O(n×m) 降到 O(n+m)。
+            // 原始项一律不会因后续插入而移位（新项都插在 insertIndex == 原始末尾之后），
+            // 故映射在循环内对原始项始终有效；插入新项时同步写入映射以保持 indexOfLast 语义。
+            val indexByMsgId = HashMap<Long, Int>(msg.size)
+            msg.forEachIndexed { i, item -> indexByMsgId[item.d.msgId] = i }
             var insertIndex = -1
             while (true) {
                 val last = list.pollLast()
@@ -157,7 +172,7 @@ object CurrentMsgList {
                     list.addAll(msg)
                     break
                 }
-                val index = msg.indexOfLast { last.d.msgId == it.d.msgId }
+                val index = indexByMsgId[last.d.msgId] ?: -1
                 if (index == -1) {
                     if (insertIndex == -1) {
                         msg.add(last)
@@ -165,6 +180,7 @@ object CurrentMsgList {
                     } else {
                         msg.add(insertIndex, last)
                     }
+                    indexByMsgId[last.d.msgId] = insertIndex
                 } else {
                     msg[index] = last
                     //if (insertIndex == -1) {

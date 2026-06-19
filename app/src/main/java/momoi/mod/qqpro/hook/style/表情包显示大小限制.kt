@@ -1,13 +1,13 @@
 package momoi.mod.qqpro.hook.style
 
 import android.content.Context
-import android.content.res.Resources
 import com.tencent.watch.aio_impl.ui.widget.RoundBubbleImageView
 import me.jessyan.autosize.AutoSizeConfig
 import momoi.anno.mixin.Mixin
 import momoi.mod.qqpro.Settings
+import momoi.mod.qqpro.util.Utils
 
-val heightLimit: Float get() = Resources.getSystem().displayMetrics.heightPixels * Settings.picMaxHeightRatio.value
+val heightLimit: Float get() = Utils.heightPixels * Settings.picMaxHeightRatio.value
 
 @Mixin
 class 表情包显示大小限制(context: Context) : RoundBubbleImageView(context) {

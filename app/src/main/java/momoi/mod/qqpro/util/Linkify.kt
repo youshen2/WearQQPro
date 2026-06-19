@@ -7,13 +7,24 @@ import android.text.style.ClickableSpan
 import android.text.style.URLSpan
 import android.view.View
 import android.widget.TextView
+import momoi.mod.qqpro.Settings
 import moye.wear.hook.LinkText
+import java.util.WeakHashMap
+
+private data class LinkifyState(val text: String, val wide: Boolean)
+private val linkifyCache = WeakHashMap<TextView, LinkifyState>()
 
 fun TextView.linkify() {
+    val current = text?.toString().orEmpty()
+    val wide = Settings.wideUrlMatch.value
+    val cached = linkifyCache[this]
+    if (cached != null && cached.text == current && cached.wide == wide) {
+        return
+    }
+
     val spannable = SpannableStringBuilder(text)
     val existingSpans = spannable.getSpans(0, spannable.length, URLSpan::class.java)
     existingSpans.forEach { spannable.removeSpan(it) }
-    // 链接区间的识别交给 LinkText 统一处理：是否识别无前缀链接由设置项控制
     val links = LinkText.ranges(spannable)
     links.reversed().forEach { range ->
         val start = range.first
@@ -23,7 +34,6 @@ fun TextView.linkify() {
         spannable.setSpan(
             object : ClickableSpan() {
                 override fun onClick(widget: View) {
-                    // 裸链接会在打开时补全协议头
                     Utils.openUrl(LinkText.withScheme(url))
                 }
             },
@@ -34,4 +44,5 @@ fun TextView.linkify() {
     }
     text = spannable
     movementMethod = LinkMovementMethod.getInstance()
+    linkifyCache[this] = LinkifyState(current, wide)
 }

@@ -38,7 +38,7 @@ object Utils {
     }
 
     fun log(msg: String) {
-        Log.e("WearQQ", msg)
+        if (isDebug) Log.e("WearQQ", msg)
     }
 
     val heightPixels = Resources.getSystem().displayMetrics.heightPixels
