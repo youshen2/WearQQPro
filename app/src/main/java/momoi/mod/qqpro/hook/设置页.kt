@@ -75,6 +75,11 @@ class 设置页 : SettingsActivity() {
                 "表冠划起来没动画开这个",
                 Settings.enableSmoothScroll
             )
+            floatInput(
+                "表冠滚动速度",
+                "表冠滚动距离倍率，默认 1.0",
+                Settings.encoderScrollSpeed
+            )
             switch(
                 "屏蔽返回键",
                 "用于米兔等会将右滑当作返回的手表",

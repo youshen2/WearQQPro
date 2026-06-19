@@ -9,6 +9,7 @@ object Settings {
     val scale = FloatPref("scale", 0.9f)
     val chatScale = FloatPref("chatScale", 0.93f)
     val enableSmoothScroll = BooleanPref("enableSmoothScroll", false)
+    val encoderScrollSpeed = FloatPref("encoderScrollSpeed", 1.0f)
     val blockBack = BooleanPref("blockBack", false)
     val swapCenterKeyboard = BooleanPref("swapCenterKeyboard", false)
     val hideVoiceButton = BooleanPref("hideVoiceButton", false)

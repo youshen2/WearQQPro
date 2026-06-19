@@ -23,7 +23,6 @@ import kotlin.math.roundToInt
 private val screenCenterX = Resources.getSystem().displayMetrics.widthPixels / 2
 private val point = intArrayOf(Int.MIN_VALUE, 0)
 
-//TODO: 代码复用
 @Mixin
 class 滚轮适配配(context: Context) : ReportDialog(context) {
     private var targetView: View? = null
@@ -34,7 +33,7 @@ class 滚轮适配配(context: Context) : ReportDialog(context) {
         val delta =
             -ev.getAxisValue(MotionEventCompat.AXIS_SCROLL) * ViewConfigurationCompat.getScaledVerticalScrollFactor(
                 ViewConfiguration.get(context), context
-            )
+            ) * Settings.encoderScrollSpeed.value
         (targetView as? RecyclerView)?.let {
             if (Settings.enableSmoothScroll.value) {
                 it.smoothScrollBy(0, delta.roundToInt())
@@ -62,7 +61,6 @@ class 滚轮适配 : MainActivity() {
     private var targetView: View? = null
     private var action: (Any.(Float)->Unit)? = null
 
-    // 设置页或系统选择器返回后会把共享密度重置回系统值，这里每次取资源都重新套用当前缩放。
     override fun getResources(): Resources {
         val res = super.getResources()
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -71,7 +69,6 @@ class 滚轮适配 : MainActivity() {
         return res
     }
 
-    // 返回聊天页后主动请求重排，让旧密度下测量过的视图按新缩放重新布局。
     override fun onResume() {
         super.onResume()
         runCatching {
@@ -87,7 +84,7 @@ class 滚轮适配 : MainActivity() {
         val delta =
             -ev.getAxisValue(MotionEventCompat.AXIS_SCROLL) * ViewConfigurationCompat.getScaledVerticalScrollFactor(
                 ViewConfiguration.get(this), this
-            )
+            ) * Settings.encoderScrollSpeed.value
         (targetView as? RecyclerView)?.let {
             if (Settings.enableSmoothScroll.value) {
                 it.smoothScrollBy(0, delta.roundToInt())
