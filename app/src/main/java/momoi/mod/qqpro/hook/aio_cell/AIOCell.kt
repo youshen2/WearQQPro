@@ -24,6 +24,7 @@ import momoi.mod.qqpro.util.linkify
 import momoi.mod.qqpro.warp
 import moye.wear.hook.GroupAvatarHook
 import moye.wear.hook.LinkPreview
+import moye.wear.hook.VideoDownloadProgressHook
 import moye.wear.hook.parseAtMembers
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
@@ -121,6 +122,7 @@ object AIOCell {
             p6: LifecycleOwner?
         ) {
             super.i(view, item, p3, p4, p5, p6)
+            VideoDownloadProgressHook.bind(view, item, p4)
             if (Settings.parseAtMember.value && view is TextView) {
                 if (view.movementMethod !is LinkMovementMethod) {
                     view.movementMethod = LinkMovementMethod.getInstance()
