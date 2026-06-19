@@ -19,12 +19,27 @@ import com.tencent.watch.aio_impl.ui.frames.FrameAdapter
 import com.tencent.watch.aio_impl.ui.frames.MenuFrame
 import com.tencent.watch.aio_impl.ui.frames.MenuItem
 import momoi.mod.qqpro.drawable.roundCornerDrawable
+import momoi.mod.qqpro.hook.action.CurrentContact
+import momoi.mod.qqpro.hook.action.isGroup
 import momoi.mod.qqpro.hook.view.CallConfirmFragment
 import momoi.mod.qqpro.lib.dp
 import momoi.mod.qqpro.lib.dpf
 import momoi.mod.qqpro.Settings
+import moye.wearqq.AtElementArg
+import moye.wearqq.IMEOperation
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
+
+private class MentionAllMenuItem : MenuItem() {
+    override fun a() = 0
+    override fun b() = "@全体成员"
+    override fun d() = 2
+    override fun e() {
+        runCatching {
+            IMEOperation.INSTANCE.openIMEWithExtra(AtElementArg("all", "全体成员", ""))
+        }
+    }
+}
 
 object ExtraMenuOverlay {
     private const val HOST_TAG = "wearqq_extra_menu_overlay_host"
@@ -112,6 +127,7 @@ object ExtraMenuOverlay {
                 .commitAllowingStateLoss()
             fragment.childFragmentManager.executePendingTransactions()
         }
+        injectMentionAllItem(menu)
         styleMenuList(menu)
         installAutoHide(menu, fragment)
         host.visibility = View.VISIBLE
@@ -178,6 +194,21 @@ object ExtraMenuOverlay {
         recyclerView.post {
             restyleVisibleMenuItems(recyclerView)
             recyclerView.alpha = 1f
+        }
+    }
+
+    private fun injectMentionAllItem(menu: MenuFrame) {
+        if (!CurrentContact.isGroup) return
+        val recyclerView = menu.i ?: return
+        val adapter = recyclerView.adapter ?: return
+        runCatching {
+            val field = adapter.javaClass.getDeclaredField("a")
+            field.isAccessible = true
+            val items = field.get(adapter) as? ArrayList<MenuItem> ?: return
+            if (items.none { it is MentionAllMenuItem }) {
+                items.add(0, MentionAllMenuItem())
+                adapter.notifyDataSetChanged()
+            }
         }
     }
 
