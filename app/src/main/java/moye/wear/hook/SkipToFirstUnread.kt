@@ -1,33 +1,26 @@
-package momoi.mod.qqpro.hook
+package moye.wear.hook
 
 import android.annotation.SuppressLint
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.AIOLayoutManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.tencent.aio.api.list.IListUIOperationApi
 import com.tencent.mvi.api.help.CreateViewParams
 import com.tencent.watch.aio_impl.coreImpl.vb.WatchAIOListVB
 import com.tencent.watch.aio_impl.data.WatchAIOMsgItem
 import momoi.anno.mixin.Mixin
-import momoi.mod.qqpro.MsgUtil
 import momoi.mod.qqpro.util.Utils
-import momoi.mod.qqpro.asGroup
 import momoi.mod.qqpro.drawable.roundCornerDrawable
 import momoi.mod.qqpro.hook.action.CurrentContact
 import momoi.mod.qqpro.hook.action.CurrentMsgList
 import momoi.mod.qqpro.hook.action.RecentContacts
-import momoi.mod.qqpro.hook.view.smoothScrollToStart
 import momoi.mod.qqpro.lib.FrameScope
 import momoi.mod.qqpro.lib.background
-import momoi.mod.qqpro.lib.clickable
 import momoi.mod.qqpro.lib.dp
 import momoi.mod.qqpro.lib.padding
-import momoi.mod.qqpro.lib.text
 import momoi.mod.qqpro.lib.textColor
 import momoi.mod.qqpro.lib.textSize
 
@@ -69,27 +62,32 @@ class SkipAction(
     override fun onClick(v: View?) {
         if (isClicked) return
         val list = CurrentMsgList.msgList.value
-        Utils.log("SkipAction onClick. count: $count, lastUnreadMsg: $lastUnreadMsg, listSize: ${list.size}")
+
+        val onProgress: (Int) -> Unit = { pct -> tv.text = "加载中 $pct%" }
+        val onFail: () -> Unit = {
+            Utils.toast(tv.context, "加载失败，请重试")
+            tv.text = format(count)
+            isClicked = false
+        }
+
         when {
-            // 已经滚动过，记录了最后一条未读消息，按其索引跳转
             lastUnreadMsg != null -> {
-                CurrentMsgList.upwardMsg(CurrentMsgList.getMsgIndex(lastUnreadMsg!!), count) {
+                isClicked = true
+                CurrentMsgList.upwardMsg(CurrentMsgList.getMsgIndex(lastUnreadMsg!!), count, onProgress, onFail) {
                     rv.scrollToPosition(it)
                 }
-                isClicked = true
             }
-            // 还未滚动过，直接从最新一条消息向上推算首条未读的位置
             list.isNotEmpty() && count > 0 -> {
-                CurrentMsgList.upwardMsg(list.size - 1, count - 1) {
+                isClicked = true
+                CurrentMsgList.upwardMsg(list.size - 1, count - 1, onProgress, onFail) {
                     rv.scrollToPosition(it)
                 }
-                isClicked = true
             }
         }
     }
 }
 @Mixin
-class 跳转第一条未读消息 : WatchAIOListVB() {
+class SkipToFirstUnread : WatchAIOListVB() {
     @SuppressLint("RtlHardcoded")
     override fun h(
         createViewParams: CreateViewParams,
@@ -107,7 +105,7 @@ class 跳转第一条未读消息 : WatchAIOListVB() {
                     .padding(6.dp)
                     .textSize(12f)
                     .textColor(0xFF_22a6f2)
-                SkipAction(this@跳转第一条未读消息.H, tv, recent)
+                SkipAction(this@SkipToFirstUnread.H, tv, recent)
             }
         }
     }.group

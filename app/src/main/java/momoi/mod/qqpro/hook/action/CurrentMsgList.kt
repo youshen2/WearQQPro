@@ -49,20 +49,64 @@ object CurrentMsgList {
         }
     }
 
-    fun upwardMsg(current: Int, count: Int, callback: (Int) -> Unit) {
+    /**
+     * Scroll target is [count] messages above [current]. Pages in older messages until enough
+     * history is loaded, then invokes [callback] with the resulting list position.
+     *
+     * [onProgress] is called with a 0..100 percentage after each page so the caller can show a
+     * loading indicator. [onFail] fires (on the UI thread) if a page load times out or the top of
+     * history is reached before the target — so the UI can show a toast and reset instead of
+     * hanging silently.
+     */
+    fun upwardMsg(
+        current: Int,
+        count: Int,
+        onProgress: (Int) -> Unit = {},
+        onFail: () -> Unit = {},
+        callback: (Int) -> Unit
+    ) {
         val target = msgList.value.size - 1 - current + count
-        upwardMsgInternal(target, callback)
+        upwardMsgInternal(target, msgList.value.size, onProgress, onFail, callback)
     }
 
-    private fun upwardMsgInternal(target: Int, callback: (Int) -> Unit) {
-        if (msgList.value.size < target) {
-            msgList.observeOnce {
-                upwardMsgInternal(target, callback)
-            }
-            loadMoreMsg()
-        } else {
+    private fun upwardMsgInternal(
+        target: Int,
+        startSize: Int,
+        onProgress: (Int) -> Unit,
+        onFail: () -> Unit,
+        callback: (Int) -> Unit
+    ) {
+        if (msgList.value.size >= target) {
             callback(msgList.value.size - target - 1)
+            return
         }
+        val before = msgList.value.size
+        if (target > startSize) {
+            val pct = ((before - startSize) * 100 / (target - startSize)).coerceIn(0, 99)
+            onProgress(pct)
+        }
+        var settled = false
+        msgList.observeOnce {
+            if (settled) return@observeOnce
+            settled = true
+            ThreadManager.runOnUiThread({
+                if (msgList.value.size <= before) {
+                    // List stopped growing -> reached the top of history before the target.
+                    Utils.log("upwardMsg: reached top of history before target=$target, size=${msgList.value.size}")
+                    onFail()
+                } else {
+                    upwardMsgInternal(target, startSize, onProgress, onFail, callback)
+                }
+            })
+        }
+        ThreadManager.runOnUiThread({
+            if (settled) return@runOnUiThread
+            settled = true
+            Utils.log("upwardMsg: timed out waiting for more msgs, target=$target size=${msgList.value.size}")
+            onFail()
+        }, 5000L)
+        isLoadingMsg = false // clear any stuck guard from a previously interrupted load
+        loadMoreMsg()
     }
 
     /**
