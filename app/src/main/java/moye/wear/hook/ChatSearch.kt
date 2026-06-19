@@ -28,6 +28,7 @@ import momoi.mod.qqpro.lib.dp
 import momoi.mod.qqpro.lib.gravity
 import momoi.mod.qqpro.lib.linearLayout
 import momoi.mod.qqpro.lib.margin
+import momoi.mod.qqpro.lib.marginHorizontal
 import momoi.mod.qqpro.lib.padding
 import momoi.mod.qqpro.lib.text
 import momoi.mod.qqpro.lib.textColor
@@ -122,6 +123,9 @@ class ChatSearchFragment : MyDialogFragment() {
     /** 对话框销毁时置为 false，使进行中的 loadAll 停止而不泄漏。 */
     private var active = true
 
+    /** 由"立即显示"按钮设置，用于提前停止分页并显示已加载的部分结果。 */
+    private var loadCancelled = false
+
     override fun onDestroyView() {
         active = false
         super.onDestroyView()
@@ -201,9 +205,7 @@ class ChatSearchFragment : MyDialogFragment() {
     }
 
     private fun startDateFlow() {
-        showLoading()
-        CurrentMsgList.loadAll(onProgress = ::updateLoading, shouldContinue = { isAdded && active }) {
-            if (!isAdded || !active) return@loadAll // 加载途中对话框已关闭
+        loadThen {
             val days = CurrentMsgList.msgList.value
                 .asSequence()
                 .filter { it.d.elements.isNotEmpty() }
@@ -240,9 +242,7 @@ class ChatSearchFragment : MyDialogFragment() {
     }
 
     private fun startSearch(type: SearchType, keyword: String?, day: String?) {
-        showLoading()
-        CurrentMsgList.loadAll(onProgress = ::updateLoading, shouldContinue = { isAdded && active }) {
-            if (!isAdded || !active) return@loadAll // 加载途中对话框已关闭
+        loadThen {
             val hits = CurrentMsgList.msgList.value.filter { matches(it, type, keyword, day) }
             Utils.log("ChatSearch: type=$type keyword=$keyword day=$day hits=${hits.size}")
             showResults(hits, withPreview = type == SearchType.MEDIA)
@@ -285,6 +285,31 @@ class ChatSearchFragment : MyDialogFragment() {
         }
     }
 
+    /**
+     * 将整段聊天历史分页加载进内存，然后执行 [render]。对于很长的聊天记录，
+     * 加载过程会比较耗时，因此加载界面会显示"立即显示当前结果"按钮：
+     * 点击后取消后续加载，直接在已加载的消息上执行 [render]。
+     * [render] 仅执行一次——无论是点击"立即显示"触发还是 loadAll 完成触发。
+     */
+    private fun loadThen(render: () -> Unit) {
+        loadCancelled = false
+        var rendered = false
+        val finish = {
+            if (!rendered && isAdded && active) {
+                rendered = true
+                render()
+            }
+        }
+        showLoading(onShowNow = {
+            loadCancelled = true
+            finish()
+        })
+        CurrentMsgList.loadAll(
+            onProgress = ::updateLoading,
+            shouldContinue = { isAdded && active && !loadCancelled }
+        ) { finish() }
+    }
+
     /** 把 [rec] 的首张图片缩略图加载到 [iv]（视频 / 无法解析时显示深色占位）。 */
     private fun bindPreview(iv: ImageView, rec: MsgRecord) {
         iv.setImageDrawable(null)
@@ -300,7 +325,7 @@ class ChatSearchFragment : MyDialogFragment() {
         }
     }
 
-    private fun showLoading() {
+    private fun showLoading(onShowNow: () -> Unit) {
         root.removeAllViews()
         root.gravity = Gravity.CENTER
         root.content {
@@ -310,6 +335,23 @@ class ChatSearchFragment : MyDialogFragment() {
                 .textColor(0xFF_FFFFFF)
                 .gravity(Gravity.CENTER)
                 .apply { tag = "loading" }
+            // 跳过剩余的（缓慢的）完整历史加载，直接搜索已加载的部分。
+            add<TextView>()
+                .text("立即显示当前结果")
+                .textSize(13f)
+                .textColor(0xFF_000000.toInt())
+                .gravity(Gravity.CENTER)
+                .width(FILL)
+                .marginHorizontal(24.dp)
+                .margin(top = 16.dp)
+                .padding(top = 10.dp, bottom = 10.dp)
+                .apply {
+                    background = GradientDrawable().apply {
+                        setColor(ACCENT)
+                        cornerRadius = 22.dp.toFloat()
+                    }
+                }
+                .clickable(onShowNow)
         }
     }
 
