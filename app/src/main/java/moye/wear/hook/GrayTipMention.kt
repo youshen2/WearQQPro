@@ -21,6 +21,7 @@ import momoi.mod.qqpro.hook.action.CurrentContact
 import momoi.mod.qqpro.hook.action.CurrentMemberInfo
 import momoi.mod.qqpro.hook.action.isGroup
 import momoi.mod.qqpro.util.Utils
+import momoi.mod.qqpro.util.runOnUi
 import java.lang.ref.WeakReference
 import mqq.app.AppRuntime
 
@@ -77,7 +78,9 @@ fun View.openMemberProfileByUid(uid: String) {
     if (cached != null) {
         navigateToProfile(cached.uid, cached.uin.toString(), cached.displayName())
     } else {
-        navigateToProfile(uid, "", "")
+        CurrentMemberInfo.get(uid) { member ->
+            runOnUi { navigateToProfile(member.uid, member.uin.toString(), member.displayName()) }
+        }
     }
 }
 
