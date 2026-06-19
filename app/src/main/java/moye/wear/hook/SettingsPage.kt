@@ -1,6 +1,8 @@
 package moye.wear.hook
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.InputType
@@ -34,15 +36,19 @@ import momoi.mod.qqpro.lib.textColor
 import momoi.mod.qqpro.lib.textSize
 import momoi.mod.qqpro.lib.vertical
 import momoi.mod.qqpro.lib.width
+import momoi.mod.qqpro.util.ChatBackground
 import momoi.mod.qqpro.util.Utils
 import moye.wear.hook.LongPressMenuOrderDialog
 import moye.wearqq.SettingsActivity
+
+private const val REQ_PICK_CHAT_BG = 0x9B01
 
 @Mixin
 class SettingsPage : SettingsActivity() {
 
     private lateinit var contentView: LinearLayout
     private lateinit var sp: SharedPreferences
+    private var bgStatusLabel: TextView? = null
 
     @SuppressLint("ResourceType", "SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,6 +117,9 @@ class SettingsPage : SettingsActivity() {
                     Utils.toast(this@SettingsPage, "打开排序面板失败")
                 }
             }
+            sectionTitle("聊天背景")
+            chatBackgroundPicker()
+            percentInput("背景变暗程度", "调暗背景图以便看清文字(0-90)，重进聊天页生效", Settings.chatBgDarken, 0f, 0.9f)
             sectionTitle("输入与发送")
             switchFromSP("单行输入", "消息输入页面文本框使用单行输入，输入法出现问题时可以尝试开启", "single_line_input", false)
             switchFromSP("携带图片发送", "从相册选择图片时允许携带其他内容进行发送", "send_with_image", true)
@@ -287,6 +296,106 @@ class SettingsPage : SettingsActivity() {
                 .background(roundCornerDrawable(0x44_000000, 8.dpf))
                 .clickable(onClick)
         }.clickable(onClick)
+    }
+
+    private fun updateBgStatus() {
+        bgStatusLabel?.text = if (ChatBackground.isSet()) "已设置背景图片" else "未设置（使用默认背景）"
+    }
+
+    private fun GroupScope.chatBackgroundPicker() {
+        baseEntry("聊天背景图", "聊天页背景") {
+            add<LinearLayout>()
+                .vertical()
+                .weight(1f)
+                .content {
+                    bgStatusLabel = add<TextView>()
+                        .textSize(10f)
+                        .textColor(0xFF_FFFFFF)
+                        .apply { alpha = 0.7f }
+                    updateBgStatus()
+                    add<LinearLayout>()
+                        .width(FILL)
+                        .padding(top = 4.dp)
+                        .content {
+                            pillButton("选择图片", 0xFF_4FC3F7.toInt()) { pickChatBackground() }
+                                .weight(1f)
+                                .margin(right = 4.dp)
+                            pillButton("清除", 0xFF_E57373.toInt()) {
+                                ChatBackground.clear()
+                                updateBgStatus()
+                                Utils.toast(this@SettingsPage, "已清除聊天背景")
+                            }.weight(1f).margin(left = 4.dp)
+                        }
+                }
+        }
+    }
+
+    private fun GroupScope.pillButton(
+        label: String,
+        color: Int,
+        onTap: () -> Unit
+    ): TextView {
+        val btn = add<TextView>()
+            .text(label)
+            .textSize(12f)
+            .textColor(0xFF_FFFFFF)
+            .gravity(Gravity.CENTER)
+            .padding(top = 6.dp, bottom = 6.dp)
+        btn.background(roundCornerDrawable(color, 18.dpf))
+        btn.clickable(onTap)
+        return btn
+    }
+
+    private fun GroupScope.percentInput(
+        title: String,
+        desc: String = "",
+        pref: Pref<Float>,
+        min: Float = 0f,
+        max: Float = 1f
+    ) {
+        baseEntry(title, desc) {
+            val et: EditText = add()
+            et.text("%.0f".format(pref.value * 100))
+            et.width(70.dp)
+            et.textSize(12f)
+            et.textColor(0xFF_FFFFFF)
+            et.gravity(Gravity.CENTER)
+            et.hint = "0-100"
+            et.background(roundCornerDrawable(0x44_000000, 8.dpf))
+            et.padding(left = 6.dp, top = 4.dp, right = 6.dp, bottom = 4.dp)
+            et.isSingleLine = true
+            et.inputType = InputType.TYPE_CLASS_NUMBER
+            et.doAfterTextChanged {
+                it?.toString()?.toIntOrNull()?.let { pct ->
+                    val value = pct / 100f
+                    if (value in min..max) pref.value = value
+                }
+            }
+        }
+    }
+
+    private fun pickChatBackground() {
+        val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+        }
+        try {
+            startActivityForResult(Intent.createChooser(intent, "选择背景图片"), REQ_PICK_CHAT_BG)
+        } catch (e: Exception) {
+            Utils.toast(this, "无法打开图片选择器")
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_PICK_CHAT_BG) return
+        val uri = data?.data
+        if (resultCode == Activity.RESULT_OK && uri != null && ChatBackground.save(this, uri)) {
+            Utils.toast(this, "已设置聊天背景")
+        } else if (resultCode == Activity.RESULT_OK) {
+            Utils.toast(this, "设置失败")
+        }
+        updateBgStatus()
     }
 
     private fun GroupScope.baseEntry(
