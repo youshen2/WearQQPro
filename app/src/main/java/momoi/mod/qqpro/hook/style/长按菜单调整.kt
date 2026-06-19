@@ -50,6 +50,8 @@ private const val ICON_COPY = 2114454957
 private const val ICON_SHARE = 2114454989
 private const val ICON_REVOKE = 2114454918
 
+private fun MemberRole.isManager() = this == MemberRole.OWNER || this == MemberRole.ADMIN
+
 private fun createNativeMenuItem(
     parent: LinearLayout,
     text: String,
@@ -147,14 +149,30 @@ private fun process(
     }
     renderItems()
     if (msg != null && CurrentContact.isGroup) {
-        CurrentGroupMembers.get(SelfContact.peerUid) {
-            if (it.role == MemberRole.OWNER || it.role == MemberRole.ADMIN) {
-                linear.post {
-                    items["撤回"] = createNativeMenuItem(linear, "撤回", ICON_REVOKE) {
-                        KernelServiceUtil.c()?.recallMsg(CurrentContact, msg.msgId, null)
-                    }
-                    renderItems()
+        val groupPeerUid = CurrentContact.peerUid
+        val msgId = msg.msgId
+
+        fun addRecallItem() {
+            if (!CurrentContact.isGroup || CurrentContact.peerUid != groupPeerUid) return
+            items["撤回"] = createNativeMenuItem(linear, "撤回", ICON_REVOKE) {
+                KernelServiceUtil.c()?.recallMsg(CurrentContact, msgId, null)
+            }
+            renderItems()
+        }
+
+        CurrentGroupMembers.get(SelfContact.peerUid) { self ->
+            when (self.role) {
+                MemberRole.OWNER -> linear.post {
+                    addRecallItem()
                 }
+                MemberRole.ADMIN -> CurrentGroupMembers.get(msg.senderUid) { sender ->
+                    if (!sender.role.isManager()) {
+                        linear.post {
+                            addRecallItem()
+                        }
+                    }
+                }
+                else -> Unit
             }
         }
     }
