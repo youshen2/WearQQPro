@@ -2,6 +2,7 @@ package momoi.mod.qqpro.hook.aio_cell
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.text.method.LinkMovementMethod
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -119,6 +120,12 @@ object AIOCell {
             p6: LifecycleOwner?
         ) {
             super.i(view, item, p3, p4, p5, p6)
+            if (Settings.parseAtMember.value && view is TextView) {
+                if (view.movementMethod !is LinkMovementMethod) {
+                    view.movementMethod = LinkMovementMethod.getInstance()
+                    view.highlightColor = 0x33888888
+                }
+            }
             val widget = view as? AIOCellGroupWidget ?: return
             if (CurrentContact.isGroup) {
                 val senderUid = item.d.senderUid
