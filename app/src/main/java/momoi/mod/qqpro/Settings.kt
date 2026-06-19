@@ -33,6 +33,7 @@ object Settings {
     val picMaxHeightRatio = FloatPref("picMaxHeightRatio", 0.5f)
     val parseAtMember = BooleanPref("parseAtMember", false)
     val chatBgDarken = FloatPref("chatBgDarken", 0.35f)
+    val multiSelectAlbum = BooleanPref("multiSelectAlbum", true)
 
     private val moye = Utils.application.getSharedPreferences("wearqq", 0)
     val text get() = moye.getString("voice_btn_text", "")?.let {

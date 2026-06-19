@@ -124,6 +124,7 @@ class SettingsPage : SettingsActivity() {
             sectionTitle("输入与发送")
             switchFromSP("单行输入", "消息输入页面文本框使用单行输入，输入法出现问题时可以尝试开启", "single_line_input", false)
             switchFromSP("携带图片发送", "从相册选择图片时允许携带其他内容进行发送", "send_with_image", true)
+            switch("相册多选", "相册按钮支持多选图片，开启携带图片发送时按顺序插入输入框，否则按顺序依次发送", Settings.multiSelectAlbum)
             switchFromSP("回复带@", "回复时自动添加@mentions", "reply_with_at", false)
             switchFromSP("双击朗读", "双击聊天气泡调用系统TTS进行朗读", "double_speak", false)
             switchFromSP("双击回复", "双击聊天气泡进行回复", "double_reply", false)
