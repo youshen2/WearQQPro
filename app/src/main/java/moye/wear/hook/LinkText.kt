@@ -5,17 +5,14 @@ import java.util.regex.Pattern
 
 object LinkText {
 
-    private const val TAIL_EXCLUDE =
-        "\\u4e00-\\u9fa5\\u3002\\uff1f\\uff01\\uff0c\\u3001\\uff1b\\uff1a" +
-        "\\u201c\\u201d\\u2018\\u2019\\uff08\\uff09\\u300a\\u300b\\u3008\\u3009" +
-        "\\u3010\\u3011\\u300e\\u300f\\u300c\\u300d\\u3014\\u3015\\u2026\\u2014\\uff5e\\uffe5"
+    private const val STOP = "\\s\\u4e00-\\u9fa5\\u3002\\uff1f\\uff01\\uff0c\\u3001\\uff1b\\uff1a\\u201c\\u201d\\u2018\\u2019\\uff08\\uff09\\u300a\\u300b\\u3008\\u3009\\u3010\\u3011\\u300e\\u300f\\u300c\\u300d\\uff43\\uff44\\u3014\\u3015\\u2026\\u2014\\uff5e\\uff4f\\uffe5"
 
     private val strictPattern: Pattern =
-        Pattern.compile("https?://[^\\s$TAIL_EXCLUDE]+")
+        Pattern.compile("(?i)https?://[^$STOP]+")
 
     private val widePattern: Pattern =
         Pattern.compile(
-            "(?:https?://)?(?:[\\w-]+\\.)+[a-zA-Z]{2,}(?:[/:?#][^\\s$TAIL_EXCLUDE]*)?"
+            "(?:https?://)?(?:[\\w-]+\\.)+[a-zA-Z]{2,}(?:[/:?#][^\\s$STOP]*)?"
         )
 
     private val currentPattern: Pattern
