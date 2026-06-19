@@ -16,6 +16,7 @@ class GroupAvatarPreview : SettingFrame() {
         super.onViewCreated(view, savedInstanceState)
         // 在设置页插入“搜索聊天记录”入口（群聊与单聊都会显示）。
         addChatSearchEntry(this)
+        addGroupBulletinEntry(this)
         val args = arguments ?: return
         val peerId = args.getString("key_bundle_peer_id")
         val chatType = args.getInt("key_bundle_chat_type")
