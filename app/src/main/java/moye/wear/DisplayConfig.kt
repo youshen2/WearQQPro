@@ -2,7 +2,7 @@ package moye.wear
 
 object DisplayConfig {
     const val appName = "WearQQ Pro"
-    const val versionName = "2.1"
+    const val versionName = "2.2"
 
     val selfFragmentText: String
         get() = buildString {
@@ -18,7 +18,7 @@ object DisplayConfig {
             appendLine("|huanli233|")
             appendLine()
             appendLine("交流群：757440701")
-            appendLine("2026/06/14")
+            appendLine("2026/06/19")
             appendLine()
             appendLine("仅供学习参考使用，请于24小时内删除")
             appendLine()
@@ -26,13 +26,40 @@ object DisplayConfig {
 
     val updateLogText: String
         get() = buildString {
+            appendLine("V2.2：")
+            appendLine("增加了群公告")
+            appendLine("重新设计了设置页面")
+            appendLine("增加了屏蔽右滑返回设置项")
+            appendLine("增加了从灰色提示条中识别@成员功能")
+            appendLine("增加了聊天气泡中的艾特识别功能")
+            appendLine("增加了登录二维码和个人二维码的点击放大")
+            appendLine("增加了语音视频通话的二次确认")
+            appendLine("增加了附加菜单的右滑退出")
+            appendLine("增加了视频的下载进度展示")
+            appendLine("增加了相册的多选功能")
+            appendLine("增加了额外菜单中的艾特全体选项")
+            appendLine("增加了聊天背景图设置功能")
+            appendLine("增加了回到底部按钮")
+            appendLine("增加了跳转到未读消息时的加载百分比")
+            appendLine("增加了搜索聊天记录的立刻完成按钮")
+            appendLine("增加了表冠滚动速度设置项")
+            appendLine("增加了长按菜单中缺失的图标")
+            appendLine("增加了[有新文件]等信息预览提示")
+            appendLine("修复了保存图片时闪退的问题")
+            appendLine("修复了[有人@我]没能正确消失的问题")
+            appendLine("修复了加载过多旧消息后回到最新位置会丢失列表中部分消息气泡的问题")
+            appendLine("修复了开启“回复携带艾特”之后私聊也会发送乱码艾特的问题")
+            appendLine("优化了严格链接匹配")
+            appendLine("优化了撤回按钮的权限判断")
+            appendLine("优化了性能")
+            appendLine()
             appendLine("V2.1：")
             appendLine("支持了更多消息类型的分享")
             appendLine("修复了无法回复消息的问题")
             appendLine("修复了长按菜单排序调整对话框没有全屏的问题")
             appendLine("修复了长按菜单中的UI样式不统一的问题")
             appendLine("回退了QQProV1.5.1中导致异常的头衔获取方式改动")
-            appendLine("---")
+            appendLine()
             appendLine("V2.0：")
             appendLine("统一了设置页面的UI样式")
             appendLine("增加了反ROOT等检测功能")
