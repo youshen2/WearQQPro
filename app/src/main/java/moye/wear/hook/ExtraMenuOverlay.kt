@@ -1,10 +1,12 @@
 package moye.wear.hook
 
+import android.content.Context
 import android.os.Bundle
 import android.view.GestureDetector
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -13,6 +15,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
+import com.tencent.qqnt.kernel.nativeinterface.MemberRole
 import com.tencent.qqnt.watch.ui.componet.tablayout.CircleIndicator
 import com.tencent.watch.aio_impl.ui.WatchAIOFragment
 import com.tencent.watch.aio_impl.ui.frames.FrameAdapter
@@ -20,6 +23,8 @@ import com.tencent.watch.aio_impl.ui.frames.MenuFrame
 import com.tencent.watch.aio_impl.ui.frames.MenuItem
 import momoi.mod.qqpro.drawable.roundCornerDrawable
 import momoi.mod.qqpro.hook.action.CurrentContact
+import momoi.mod.qqpro.hook.action.CurrentMemberInfo
+import momoi.mod.qqpro.hook.action.SelfContact
 import momoi.mod.qqpro.hook.action.isGroup
 import momoi.mod.qqpro.hook.view.CallConfirmFragment
 import momoi.mod.qqpro.lib.dp
@@ -29,6 +34,7 @@ import moye.wearqq.AtElementArg
 import moye.wearqq.IMEOperation
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
+import kotlin.math.abs
 
 private class MentionAllMenuItem : MenuItem() {
     override fun a() = 0
@@ -38,6 +44,40 @@ private class MentionAllMenuItem : MenuItem() {
         runCatching {
             IMEOperation.INSTANCE.openIMEWithExtra(AtElementArg("all", "全体成员", ""))
         }
+    }
+}
+
+private class ExtraMenuHost(context: Context, private val onSwipeBack: () -> Unit) : FrameLayout(context) {
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private var downX = 0f
+    private var downY = 0f
+    private var swiping = false
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        parent?.requestDisallowInterceptTouchEvent(true)
+        when (ev.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                downX = ev.rawX
+                downY = ev.rawY
+                swiping = false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dx = ev.rawX - downX
+                val dy = ev.rawY - downY
+                if (!swiping && dx > touchSlop && dx > abs(dy) * 1.5f) {
+                    swiping = true
+                    onSwipeBack()
+                    return true
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (swiping) {
+                    swiping = false
+                    return true
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
     }
 }
 
@@ -86,7 +126,9 @@ object ExtraMenuOverlay {
         if (root.findViewWithTag<View>(HOST_TAG) != null) {
             return
         }
-        val host = FrameLayout(root.context).apply {
+        val host = ExtraMenuHost(root.context) {
+            hideHost(fragment)
+        }.apply {
             id = hostId
             tag = HOST_TAG
             visibility = View.GONE
@@ -127,7 +169,7 @@ object ExtraMenuOverlay {
                 .commitAllowingStateLoss()
             fragment.childFragmentManager.executePendingTransactions()
         }
-        injectMentionAllItem(menu)
+        syncMentionAllItem(menu)
         styleMenuList(menu)
         installAutoHide(menu, fragment)
         host.visibility = View.VISIBLE
@@ -197,19 +239,60 @@ object ExtraMenuOverlay {
         }
     }
 
-    private fun injectMentionAllItem(menu: MenuFrame) {
-        if (!CurrentContact.isGroup) return
+    private fun syncMentionAllItem(menu: MenuFrame) {
         val recyclerView = menu.i ?: return
         val adapter = recyclerView.adapter ?: return
         runCatching {
-            val field = adapter.javaClass.getDeclaredField("a")
-            field.isAccessible = true
-            val items = field.get(adapter) as? ArrayList<MenuItem> ?: return
-            if (items.none { it is MentionAllMenuItem }) {
-                items.add(0, MentionAllMenuItem())
-                adapter.notifyDataSetChanged()
+            val items = menuItems(adapter) ?: return
+            val groupPeerUid = CurrentContact.peerUid
+            if (!CurrentContact.isGroup) {
+                setMentionAllVisible(adapter, items, false)
+                return
+            }
+            val cached = CurrentMemberInfo.map[SelfContact.peerUid]
+            if (cached != null) {
+                setMentionAllVisible(
+                    adapter,
+                    items,
+                    cached.role == MemberRole.OWNER || cached.role == MemberRole.ADMIN
+                )
+            } else {
+                setMentionAllVisible(adapter, items, false)
+            }
+            CurrentMemberInfo.get(SelfContact.peerUid) {
+                val canMentionAll = it.role == MemberRole.OWNER || it.role == MemberRole.ADMIN
+                recyclerView.post {
+                    if (!CurrentContact.isGroup || CurrentContact.peerUid != groupPeerUid) return@post
+                    val latestAdapter = recyclerView.adapter ?: return@post
+                    val latestItems = menuItems(latestAdapter) ?: return@post
+                    setMentionAllVisible(latestAdapter, latestItems, canMentionAll)
+                }
             }
         }
+    }
+
+    private fun setMentionAllVisible(
+        adapter: RecyclerView.Adapter<*>,
+        items: ArrayList<MenuItem>,
+        visible: Boolean
+    ) {
+        val index = items.indexOfFirst { item -> item is MentionAllMenuItem }
+        if (visible && index < 0) {
+            items.add(0, MentionAllMenuItem())
+            adapter.notifyDataSetChanged()
+        } else if (!visible && index >= 0) {
+            items.removeAt(index)
+            adapter.notifyDataSetChanged()
+        }
+    }
+
+    private fun menuItems(adapter: RecyclerView.Adapter<*>): ArrayList<MenuItem>? {
+        return runCatching {
+            val field = adapter.javaClass.getDeclaredField("a")
+            field.isAccessible = true
+            @Suppress("UNCHECKED_CAST")
+            field.get(adapter) as? ArrayList<MenuItem>
+        }.getOrNull()
     }
 
     private fun installAutoHide(menu: MenuFrame, fragment: WatchAIOFragment) {
