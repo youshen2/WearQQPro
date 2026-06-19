@@ -24,6 +24,7 @@ import momoi.mod.qqpro.util.linkify
 import momoi.mod.qqpro.warp
 import moye.wear.hook.GroupAvatarHook
 import moye.wear.hook.LinkPreview
+import moye.wear.hook.parseAtMembers
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 
@@ -170,6 +171,7 @@ object AIOCell {
             }
             (widget.contentWidget as? TextView)?.let {
                 it.linkify()
+                it.parseAtMembers()
                 it.layoutParams?.let {
                     it.width = ViewGroup.LayoutParams.WRAP_CONTENT
                     it.height = ViewGroup.LayoutParams.WRAP_CONTENT

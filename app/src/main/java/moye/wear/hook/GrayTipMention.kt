@@ -2,9 +2,13 @@ package moye.wear.hook
 
 import android.content.Context
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableStringBuilder
 import android.text.TextPaint
 import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
 import android.view.View
+import android.widget.TextView
 import com.tencent.qqnt.graytips.HighlightItem
 import com.tencent.qqnt.graytips.action.BaseUserActionInfo
 import com.tencent.qqnt.graytips.span.HighlightClickableSpan
@@ -13,7 +17,9 @@ import com.tencent.qqnt.watch.profile.ProfileData
 import momoi.anno.mixin.ConstructorHook
 import momoi.anno.mixin.Mixin
 import momoi.mod.qqpro.Settings
+import momoi.mod.qqpro.hook.action.CurrentContact
 import momoi.mod.qqpro.hook.action.CurrentMemberInfo
+import momoi.mod.qqpro.hook.action.isGroup
 import momoi.mod.qqpro.util.Utils
 import java.lang.ref.WeakReference
 import mqq.app.AppRuntime
@@ -59,6 +65,10 @@ class HighlightClickableSpanHook(
 
     private fun memberUid(): String? =
         ((this.d)?.d as? BaseUserActionInfoHook)?.profileUid
+}
+
+fun View.openMemberProfile(member: MemberInfo) {
+    navigateToProfile(member.uid, member.uin.toString(), member.displayName())
 }
 
 fun View.openMemberProfileByUid(uid: String) {
@@ -107,4 +117,54 @@ private fun MemberInfo.displayName(): String = when {
     cardName.isNotEmpty() -> cardName
     remark.isNotEmpty() -> remark
     else -> nick
+}
+
+private fun memberSpan(member: MemberInfo): ClickableSpan = object : ClickableSpan() {
+    override fun onClick(widget: View) = widget.openMemberProfile(member)
+    override fun updateDrawState(ds: TextPaint) {
+        ds.color = AT_LINK_COLOR
+        ds.isUnderlineText = false
+    }
+}
+
+private fun hasClickableSpan(sp: Spannable, start: Int, end: Int): Boolean =
+    sp.getSpans(start, end, ClickableSpan::class.java).any {
+        sp.getSpanStart(it) < end && start < sp.getSpanEnd(it)
+    }
+
+fun TextView.parseAtMembers() {
+    if (!Settings.parseAtMember.value || !CurrentContact.isGroup) return
+    val members = CurrentMemberInfo.map
+    if (members.isEmpty()) return
+    val raw = text ?: return
+    if (raw.indexOf('@') < 0) return
+    val named = members.values
+        .flatMap { m -> setOf(m.cardName, m.remark, m.nick).filter { it.isNotEmpty() }.map { it to m } }
+        .sortedByDescending { it.first.length }
+    if (named.isEmpty()) return
+
+    val sp = raw as? Spannable ?: SpannableStringBuilder(raw)
+    val s = sp.toString()
+    var i = 0
+    var added = false
+    while (i < s.length) {
+        if (s[i] == '@') {
+            val rest = s.substring(i + 1)
+            val match = named.firstOrNull { rest.startsWith(it.first) }
+            if (match != null) {
+                val end = i + 1 + match.first.length
+                if (!hasClickableSpan(sp, i, end)) {
+                    sp.setSpan(memberSpan(match.second), i, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    added = true
+                    i = end
+                    continue
+                }
+            }
+        }
+        i++
+    }
+    if (added) {
+        text = sp
+        movementMethod = LinkMovementMethod.getInstance()
+    }
 }

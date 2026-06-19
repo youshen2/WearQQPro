@@ -102,7 +102,7 @@ class SettingsPage : SettingsActivity() {
             switch("隐藏语音键", "开启后聊天页面不再显示语音按钮", Settings.hideVoiceButton)
             switch("启用附加菜单", "开启后使用加号按钮代替第二页", Settings.enableExtraMenu)
             switch("链接预览卡片", "在消息下方展示链接预览，会向链接站点发起请求", Settings.enableLinkPreview)
-            switch("识别@成员", "灰色提示条中的成员名称可点击打开名片", Settings.parseAtMember)
+            switch("识别@成员", "群聊中 @成员 可点击打开名片，灰色提示条中的成员名也可点击", Settings.parseAtMember)
             stringInput("语音按钮文字", "语音按钮显示的文字，留空恢复默认", "voice_btn_text", "QQ")
             actionEntry("长按菜单排序", "拖拽调整聊天气泡长按菜单项顺序") {
                 runCatching {
