@@ -34,7 +34,7 @@ object CurrentMsgList {
             indexCache = map
             indexCacheList = current
         }
-        return indexCache!![msg] ?: -1
+        return indexCache!![msg] ?: current.indexOfFirst { it.d.msgId == msg.d.msgId }
     }
 
     private var isLoadingMsg = false
@@ -202,43 +202,56 @@ object CurrentMsgList {
         @Suppress("UNCHECKED_CAST")
         override fun n(state: MsgListUiState, uiHelper: IListUIOperationApi) {
             vb = this
-            val msg = msgList.value
             val list = state as LinkedList<WatchAIOMsgItem>
-            // 预建 msgId -> 下标 映射，替换循环内的 O(n) indexOfLast，把整体合并从 O(n×m) 降到 O(n+m)。
-            // 原始项一律不会因后续插入而移位（新项都插在 insertIndex == 原始末尾之后），
-            // 故映射在循环内对原始项始终有效；插入新项时同步写入映射以保持 indexOfLast 语义。
-            val indexByMsgId = HashMap<Long, Int>(msg.size)
-            msg.forEachIndexed { i, item -> indexByMsgId[item.d.msgId] = i }
-            var insertIndex = -1
-            while (true) {
-                val last = list.pollLast()
-                if (last == null) {
-                    list.addAll(msg)
-                    break
-                }
-                val index = indexByMsgId[last.d.msgId] ?: -1
-                if (index == -1) {
-                    if (insertIndex == -1) {
-                        msg.add(last)
-                        insertIndex = msg.lastIndex
-                    } else {
-                        msg.add(insertIndex, last)
-                    }
-                    indexByMsgId[last.d.msgId] = insertIndex
-                } else {
-                    msg[index] = last
-                    //if (insertIndex == -1) {
-                    //    insertIndex = 0
-                    //}
-                    //for (i in insertIndex until msg.size) {
-                    //    msg[i].checkAndSetSameSender(msg.getOrNull(i-1))
-                    //}
-                    list.addAll(msg.subList(index, msg.size))
-                    break
+            val merged = mergeMsgList(list)
+            list.clear()
+            list.addAll(merged)
+            msgList.update(merged)
+            super.n(list as MsgListUiState, uiHelper)
+        }
+
+        private fun mergeMsgList(incoming: List<WatchAIOMsgItem>): MutableList<WatchAIOMsgItem> {
+            val current = msgList.value
+            if (current.isEmpty()) return ArrayList(incoming)
+            if (incoming.isEmpty()) return ArrayList(current)
+
+            val indexByMsgId = HashMap<Long, Int>(current.size)
+            current.forEachIndexed { i, item -> indexByMsgId[item.d.msgId] = i }
+
+            var firstOverlap = Int.MAX_VALUE
+            var lastOverlap = -1
+            incoming.forEach { item ->
+                val index = indexByMsgId[item.d.msgId]
+                if (index != null) {
+                    if (index < firstOverlap) firstOverlap = index
+                    if (index > lastOverlap) lastOverlap = index
                 }
             }
-            msgList.update(list.toMutableList())
-            super.n(list as MsgListUiState, uiHelper)
+
+            if (lastOverlap >= 0) {
+                return ArrayList<WatchAIOMsgItem>(current.size + incoming.size).apply {
+                    addAll(current.subList(0, firstOverlap))
+                    addAll(incoming)
+                    addAll(current.subList(lastOverlap + 1, current.size))
+                }
+            }
+
+            val incomingFirstSeq = incoming.first().d.msgSeq
+            val incomingLastSeq = incoming.last().d.msgSeq
+            val currentFirstSeq = current.first().d.msgSeq
+            val currentLastSeq = current.last().d.msgSeq
+
+            return when {
+                incomingLastSeq <= currentFirstSeq -> ArrayList<WatchAIOMsgItem>(incoming.size + current.size).apply {
+                    addAll(incoming)
+                    addAll(current)
+                }
+                incomingFirstSeq >= currentLastSeq -> ArrayList<WatchAIOMsgItem>(incoming.size + current.size).apply {
+                    addAll(current)
+                    addAll(incoming)
+                }
+                else -> ArrayList(incoming)
+            }
         }
     }
 
